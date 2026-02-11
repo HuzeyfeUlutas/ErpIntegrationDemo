@@ -4,11 +4,6 @@
         <TargetFramework>net8.0</TargetFramework>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <RootNamespace>MiddlewareApplication</RootNamespace>
     </PropertyGroup>
-
-    <ItemGroup>
-      <ProjectReference Include="..\Middleware.Contracts\Middleware.Contracts.csproj" />
-    </ItemGroup>
 
 </Project>
