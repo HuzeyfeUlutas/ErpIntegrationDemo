@@ -1,0 +1,29 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\PersonnelAccessManagement.Domain\PersonnelAccessManagement.Domain.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="AutoMapper" Version="14.0.0" />
+      <PackageReference Include="FluentValidation" Version="12.1.1" />
+      <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.1.1" />
+      <PackageReference Include="MediatR" Version="14.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Features\Roles\Commands\" />
+      <Folder Include="Features\Roles\Queries\" />
+      <Folder Include="Features\Rules\Commands\CreateRule\" />
+      <Folder Include="Features\Rules\Commands\DeleteRule\" />
+      <Folder Include="Features\Rules\Commands\UpdateRule\" />
+      <Folder Include="Features\Rules\Queries\" />
+    </ItemGroup>
+
+</Project>
