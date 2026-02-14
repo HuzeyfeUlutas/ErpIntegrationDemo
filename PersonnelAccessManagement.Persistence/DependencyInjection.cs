@@ -27,7 +27,7 @@ public static class DependencyInjection
             // options.EnableDetailedErrors();
         });
         
-        services.AddScoped(typeof(IRepository<,>), typeof(EfRepository<,>));
+        services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork.EfUnitOfWork>();
 
         return services;

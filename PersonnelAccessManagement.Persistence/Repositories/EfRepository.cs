@@ -4,7 +4,7 @@ using PersonnelAccessManagement.Persistence.DbContexts;
 
 namespace PersonnelAccessManagement.Persistence.Repositories;
 
-public sealed class EfRepository<TEntity, TKey> : IRepository<TEntity, TKey>
+public sealed class EfRepository<TEntity> : IRepository<TEntity>
     where TEntity : class
 {
     private readonly PersonnelAccessManagementDbContext _db;
@@ -19,9 +19,6 @@ public sealed class EfRepository<TEntity, TKey> : IRepository<TEntity, TKey>
     public IQueryable<TEntity> Query() => _set.AsQueryable();
 
     public IQueryable<TEntity> QueryAsNoTracking() => _set.AsNoTracking();
-
-    public async Task<TEntity?> GetByIdAsync(TKey id, CancellationToken ct = default)
-        => await _set.FindAsync([id], ct);
 
     public Task AddAsync(TEntity entity, CancellationToken ct = default)
         => _set.AddAsync(entity, ct).AsTask();

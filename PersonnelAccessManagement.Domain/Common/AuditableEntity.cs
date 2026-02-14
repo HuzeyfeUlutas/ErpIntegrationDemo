@@ -8,7 +8,19 @@ public class AuditableEntity<TKey> : BaseEntity<TKey>
     public DateTime? UpdatedAt { get; set; }
     public string? UpdatedBy { get; set; }
 
-    public bool IsDeleted { get; set; }
+    public bool IsDeleted { get; private set; }
 
     protected AuditableEntity() { }
+    
+    public void SoftDelete()
+    {
+        if (IsDeleted) return;
+
+        IsDeleted = true;
+    }
+
+    public void Restore()
+    {
+        IsDeleted = false;
+    }
 }

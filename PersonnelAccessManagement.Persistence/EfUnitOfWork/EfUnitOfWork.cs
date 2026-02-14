@@ -7,29 +7,77 @@ namespace PersonnelAccessManagement.Persistence.EfUnitOfWork;
 public sealed class EfUnitOfWork : IUnitOfWork
 {
     private readonly PersonnelAccessManagementDbContext _db;
-    private IDbContextTransaction? _tx;
+    private IDbContextTransaction? _currentTransaction;
 
-    public EfUnitOfWork(PersonnelAccessManagementDbContext  db) => _db = db;
+    public EfUnitOfWork(PersonnelAccessManagementDbContext db) => _db = db;
+
+    public bool HasActiveTransaction => _currentTransaction is not null;
 
     public Task<int> SaveChangesAsync(CancellationToken ct = default)
         => _db.SaveChangesAsync(ct);
 
-    public async Task BeginTransactionAsync(CancellationToken ct = default)
-        => _tx ??= await _db.Database.BeginTransactionAsync(ct);
-
-    public async Task CommitAsync(CancellationToken ct = default)
+    public async Task<IDisposable> BeginTransactionAsync(CancellationToken ct = default)
     {
-        if (_tx is null) return;
-        await _tx.CommitAsync(ct);
-        await _tx.DisposeAsync();
-        _tx = null;
+        if (_currentTransaction is not null)
+        {
+            throw new InvalidOperationException("A transaction is already in progress.");
+        }
+
+        _currentTransaction = await _db.Database.BeginTransactionAsync(ct);
+        return _currentTransaction;
     }
 
-    public async Task RollbackAsync(CancellationToken ct = default)
+    public async Task CommitTransactionAsync(CancellationToken ct = default)
     {
-        if (_tx is null) return;
-        await _tx.RollbackAsync(ct);
-        await _tx.DisposeAsync();
-        _tx = null;
+        if (_currentTransaction is null)
+        {
+            throw new InvalidOperationException("No active transaction to commit.");
+        }
+
+        try
+        {
+            await _db.SaveChangesAsync(ct);
+            await _currentTransaction.CommitAsync(ct);
+        }
+        catch
+        {
+            await RollbackTransactionAsync(ct);
+            throw;
+        }
+        finally
+        {
+            await DisposeTransactionAsync();
+        }
+    }
+
+    public async Task RollbackTransactionAsync(CancellationToken ct = default)
+    {
+        if (_currentTransaction is null)
+        {
+            throw new InvalidOperationException("No active transaction to rollback.");
+        }
+
+        try
+        {
+            await _currentTransaction.RollbackAsync(ct);
+        }
+        finally
+        {
+            await DisposeTransactionAsync();
+        }
+    }
+
+    private async Task DisposeTransactionAsync()
+    {
+        if (_currentTransaction is not null)
+        {
+            await _currentTransaction.DisposeAsync();
+            _currentTransaction = null;
+        }
+    }
+
+    public void Dispose()
+    {
+        DisposeTransactionAsync().GetAwaiter().GetResult();
     }
 }

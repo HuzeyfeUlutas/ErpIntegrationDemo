@@ -23,4 +23,24 @@ public sealed class Personnel : AuditableEntity<Guid>
         Campus = campus;
         Title = title;
     }
+    
+    public void SetRoles(IEnumerable<Role> roles)
+    {
+        Roles.Clear();
+        foreach (var role in roles)
+            Roles.Add(role);
+    }
+
+    public void AddRole(Role role)
+    {
+        if (Roles.Any(r => r.Id == role.Id)) return;
+        Roles.Add(role);
+    }
+
+    public void RemoveRole(decimal roleId)
+    {
+        var existing = Roles.FirstOrDefault(r => r.Id == roleId);
+        if (existing is not null)
+            Roles.Remove(existing);
+    }
 }

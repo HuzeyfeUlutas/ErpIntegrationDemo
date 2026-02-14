@@ -69,14 +69,9 @@ if (app.Environment.IsDevelopment())
 }
 
 // If you don't have HTTPS configured locally, you can comment this out during dev.
-// app.UseHttpsRedirection();
+app.UseHttpsRedirection();
 
 // ---------- Endpoints ----------
 app.MapControllers();
-
-app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-
-// DEV test endpoint (remove later)
-app.MapGet("/boom", () => { throw new Exception("test exception"); });
 
 app.Run();
