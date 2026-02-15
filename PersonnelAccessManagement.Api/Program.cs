@@ -4,10 +4,21 @@ using Elastic.Serilog.Sinks;
 using PersonnelAccessManagement.Api.Middlewares;
 using PersonnelAccessManagement.Api.Observability;
 using PersonnelAccessManagement.Application;
+using PersonnelAccessManagement.Infrastructure.Seeders;
 using PersonnelAccessManagement.Persistence;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.WithOrigins("http://localhost:3000") // Vite dev port
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 
 // ---------- Elastic options (fail-fast) ----------
 var elastic = builder.Configuration.GetRequiredSection("Elastic").Get<ElasticOptions>()
@@ -48,14 +59,23 @@ builder.Host.UseSerilog((context, services, lc) =>
 });
 
 // ---------- Services ----------
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 
+// Data Seed
+builder.Services.AddScoped<DataSeeder>();
+
 var app = builder.Build();
+
+app.UseCors("AllowFrontend");
 
 // ---------- Middleware pipeline (order matters) ----------
 app.UseMiddleware<CorrelationIdMiddleware>();      // trace.id set

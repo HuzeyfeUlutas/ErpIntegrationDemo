@@ -8,6 +8,11 @@
 
     <ItemGroup>
       <ProjectReference Include="..\PersonnelAccessManagement.Application\PersonnelAccessManagement.Application.csproj" />
+      <ProjectReference Include="..\PersonnelAccessManagement.Persistence\PersonnelAccessManagement.Persistence.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Bogus" Version="35.6.1" />
     </ItemGroup>
 
 </Project>

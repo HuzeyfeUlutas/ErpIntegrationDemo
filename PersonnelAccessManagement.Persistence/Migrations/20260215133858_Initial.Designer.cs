@@ -12,7 +12,7 @@ using PersonnelAccessManagement.Persistence.DbContexts;
 namespace PersonnelAccessManagement.Persistence.Migrations
 {
     [DbContext(typeof(PersonnelAccessManagementDbContext))]
-    [Migration("20260212120624_Initial")]
+    [Migration("20260215133858_Initial")]
     partial class Initial
     {
         /// <inheritdoc />

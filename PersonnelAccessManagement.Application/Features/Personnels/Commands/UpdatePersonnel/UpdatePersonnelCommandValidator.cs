@@ -6,7 +6,7 @@ public sealed class UpdatePersonnelCommandValidator : AbstractValidator<UpdatePe
 {
     public UpdatePersonnelCommandValidator()
     {
-        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.EmployeeNo).NotEmpty();
         RuleFor(x => x.RoleIds)
             .NotNull();
 

@@ -11,8 +11,9 @@ public sealed class Role : AuditableEntity<decimal>
     
     private Role() { }
 
-    public Role(string name)
+    public Role(decimal id, string name)
     {
+        Id = id;
         Name = name;
     }
 }
