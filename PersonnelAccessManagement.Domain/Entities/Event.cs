@@ -1,41 +1,43 @@
-using PersonnelAccessManagement.Domain.Common;
-using PersonnelAccessManagement.Domain.Enums;
+// Domain/Entities/Event.cs
 
-namespace PersonnelAccessManagement.Domain.Entities;
+using PersonnelAccessManagement.Domain.Common;
+using PersonnelAccessManagement.Domain.Entities;
+using PersonnelAccessManagement.Domain.Enums;
 
 public sealed class Event : AuditableEntity<Guid>
 {
     public EventType EventType { get; private set; }
-    public string EmployeeNo { get; private set; } = default!;
-    public DateTime OccurredAt { get; private set; }
+    public string SourceId { get; private set; } = default!;
+    public string? SourceDetail { get; private set; }
     public string CorrelationId { get; private set; } = default!;
+    public DateTime OccurredAt { get; private set; }
+
+    public int TotalCount { get; private set; }
+    public int SuccessCount { get; private set; }
+    public int FailCount { get; private set; }
+    public bool IsCompleted { get; private set; }
 
     public ICollection<EventLog> Logs { get; private set; } = new List<EventLog>();
 
     private Event() { }
-    public Event(EventType eventType, string employeeNo, string correlationId)
+
+    public Event(EventType eventType, string sourceId, string correlationId, string? sourceDetail = null)
     {
         Id = Guid.NewGuid();
         EventType = eventType;
-        EmployeeNo = employeeNo.Trim();
+        SourceId = sourceId.Trim();
+        SourceDetail = sourceDetail;
         CorrelationId = correlationId.Trim();
+        OccurredAt = DateTime.UtcNow;
     }
-}
 
-public sealed class EventLog : AuditableEntity<Guid>
-{
-    public Guid EventId { get; private set; }
-    public Event Event { get; private set; } = default!;
-    public string Status { get; private set; } = default!;
-    public string? Error { get; private set; }
+    public void AddLog(EventLog log) => Logs.Add(log);
 
-    private EventLog() { }
-    
-    public EventLog(Guid eventId, string step, string status, string? error = null)
+    public void Complete(int total, int success, int fail)
     {
-        Id = Guid.NewGuid();
-        EventId = eventId;
-        Status = status.Trim();
-        Error = error;
+        TotalCount = total;
+        SuccessCount = success;
+        FailCount = fail;
+        IsCompleted = true;
     }
 }

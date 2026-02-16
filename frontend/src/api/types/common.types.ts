@@ -5,6 +5,11 @@ export interface PagedResult<T> {
   pageSize: number;
 }
 
+export interface SelectOption {
+  label: string;
+  value: string | number;
+}
+
 export enum Campus {
   Istanbul = 'Istanbul',
   Ankara = 'Ankara',

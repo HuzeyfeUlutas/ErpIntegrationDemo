@@ -4,21 +4,17 @@ using PersonnelAccessManagement.Domain.Entities;
 
 namespace PersonnelAccessManagement.Persistence.EfConfigurations;
 
-public sealed class EventLogConfig : IEntityTypeConfiguration<EventLog>
+public class EventLogConfiguration : IEntityTypeConfiguration<EventLog>
 {
-    public void Configure(EntityTypeBuilder<EventLog> b)
+    public void Configure(EntityTypeBuilder<EventLog> builder)
     {
-        b.ToTable("EventLogs");
-
-        b.HasKey(x => x.Id);
-
-        b.Property(x => x.Status)
-            .HasMaxLength(50)
-            .IsRequired();
-
-        b.HasOne(x => x.Event)
-            .WithMany(e => e.Logs)
-            .HasForeignKey(x => x.EventId)
-            .OnDelete(DeleteBehavior.Cascade);
+        builder.ToTable("EventLogs");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.PersonnelName).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.RoleName).HasMaxLength(200).IsRequired();
+        builder.Property(e => e.Action).HasMaxLength(50).IsRequired();
+        builder.Property(e => e.Error).HasMaxLength(2000);
+        builder.HasIndex(e => e.EventId);
+        builder.HasIndex(e => e.EmployeeNo);
     }
 }

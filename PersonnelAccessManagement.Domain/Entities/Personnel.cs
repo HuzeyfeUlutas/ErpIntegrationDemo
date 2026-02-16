@@ -37,7 +37,7 @@ public sealed class Personnel : AuditableEntity<Guid>
         Roles.Add(role);
     }
 
-    public void RemoveRole(decimal roleId)
+    public void RemoveRole(Decimal roleId)
     {
         var existing = Roles.FirstOrDefault(r => r.Id == roleId);
         if (existing is not null)

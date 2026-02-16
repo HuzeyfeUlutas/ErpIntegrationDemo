@@ -4,6 +4,7 @@ import { ProtectedRoute } from '@/components/layout/ProtectedRoute';
 import { LoginPage } from '@/pages/Login/LoginPage';
 import { DashboardPage } from '@/pages/Dashboard/DashboardPage';
 import {PersonnelsPage} from "@/pages/Personnels/PersonnelsPage.tsx";
+import {RulesPage} from "@/pages/Rules/RulesPage.tsx";
 
 export const router = createBrowserRouter([
   {
@@ -25,7 +26,8 @@ export const router = createBrowserRouter([
       {
         path: 'personnels',
         element: <PersonnelsPage />,
-      }
+      },
+      { path: 'rules', element: <RulesPage /> },
     ],
   },
 ]);

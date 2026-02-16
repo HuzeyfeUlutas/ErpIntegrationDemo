@@ -26,6 +26,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
     {
         var rule = await _rules.Query()
             .Include(r => r.Roles)
+            .Where(r => !r.IsDeleted)
             .FirstOrDefaultAsync(r => r.Id == request.Id, ct);
 
         if (rule is null)
@@ -33,7 +34,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
 
         // scope unique (exclude self)
         var exists = await _rules.Query()
-            .AnyAsync(r => r.Id != request.Id && r.Campus == request.Campus && r.Title == request.Title, ct);
+            .AnyAsync(r => r.Id != request.Id && r.Campus == request.Campus && r.Title == request.Title && !r.IsDeleted, ct);
 
         if (exists)
             throw new ConflictException("A rule with the same campus/title scope already exists.");

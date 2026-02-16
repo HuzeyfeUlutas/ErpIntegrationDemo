@@ -1,3 +1,4 @@
+using DotNetCore.CAP;
 using Microsoft.EntityFrameworkCore.Storage;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Persistence.DbContexts;
@@ -25,6 +26,15 @@ public sealed class EfUnitOfWork : IUnitOfWork
 
         _currentTransaction = await _db.Database.BeginTransactionAsync(ct);
         return _currentTransaction;
+    }
+    
+    public Task<IDisposable> BeginTransactionAsync(ICapPublisher capPublisher, CancellationToken ct = default)
+    {
+        if (_currentTransaction is not null)
+            throw new InvalidOperationException("A transaction is already in progress.");
+        
+        _currentTransaction = _db.Database.BeginTransaction(capPublisher, autoCommit: false);
+        return Task.FromResult<IDisposable>(_currentTransaction);
     }
 
     public async Task CommitTransactionAsync(CancellationToken ct = default)

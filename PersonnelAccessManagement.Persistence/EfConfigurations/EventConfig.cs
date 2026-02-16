@@ -4,25 +4,17 @@ using PersonnelAccessManagement.Domain.Entities;
 
 namespace PersonnelAccessManagement.Persistence.EfConfigurations;
 
-public sealed class EventConfig : IEntityTypeConfiguration<Event>
+public class EventConfiguration : IEntityTypeConfiguration<Event>
 {
-    public void Configure(EntityTypeBuilder<Event> b)
+    public void Configure(EntityTypeBuilder<Event> builder)
     {
-        b.ToTable("Events");
-
-        b.HasKey(x => x.Id);
-
-        b.Property(x => x.EventType)
-            .HasConversion<string>()
-            .HasMaxLength(80)
-            .IsRequired();
-
-        b.Property(x => x.EmployeeNo)
-            .HasMaxLength(50)
-            .IsRequired();
-
-        b.Property(x => x.CorrelationId)
-            .HasMaxLength(100)
-            .IsRequired();
+        builder.ToTable("Events");
+        builder.HasKey(e => e.Id);
+        builder.Property(e => e.SourceId).HasMaxLength(128).IsRequired();
+        builder.Property(e => e.SourceDetail).HasColumnType("jsonb");
+        builder.Property(e => e.CorrelationId).HasMaxLength(64).IsRequired();
+        builder.HasMany(e => e.Logs).WithOne(l => l.Event).HasForeignKey(l => l.EventId).OnDelete(DeleteBehavior.Cascade);
+        builder.HasIndex(e => e.CorrelationId);
+        builder.HasIndex(e => new { e.EventType, e.IsCompleted });
     }
 }

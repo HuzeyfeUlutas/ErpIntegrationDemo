@@ -4,6 +4,7 @@ using Elastic.Serilog.Sinks;
 using PersonnelAccessManagement.Api.Middlewares;
 using PersonnelAccessManagement.Api.Observability;
 using PersonnelAccessManagement.Application;
+using PersonnelAccessManagement.Infrastructure;
 using PersonnelAccessManagement.Infrastructure.Seeders;
 using PersonnelAccessManagement.Persistence;
 using Serilog;
@@ -69,6 +70,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // Data Seed
 builder.Services.AddScoped<DataSeeder>();

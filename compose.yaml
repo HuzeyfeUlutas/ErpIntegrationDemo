@@ -95,8 +95,27 @@
       Security__AllowedClockSkewSeconds: "300"
       Kafka__BootstrapServers: "kafka:9092"
       Kafka__Topic: "erp.personnel.lifecycle"
+      
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: erp-rabbitmq
+    hostname: erp-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+    ports:
+      - "5672:5672"      # AMQP protokolü
+      - "15672:15672"    # Management UI
+    volumes:
+      - rabbitmqdata:/var/lib/rabbitmq
+    healthcheck:
+      test: [ "CMD", "rabbitmq-diagnostics", "-q", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
 volumes:
   pgdata:
   kafkadata:
   esdata:
+  rabbitmqdata:

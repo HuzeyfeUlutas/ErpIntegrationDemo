@@ -52,6 +52,13 @@ export function PersonnelsPage() {
 
     const columns = [
         {
+            title: '#',
+            key: 'index',
+            width: 60,
+            render: (_: unknown, __: unknown, index: number) =>
+                (filter.pageIndex - 1) * filter.pageSize + index + 1,
+        },
+        {
             title: 'Sicil No', dataIndex: 'employeeNo', key: 'employeeNo', width: 100,
         },
         {

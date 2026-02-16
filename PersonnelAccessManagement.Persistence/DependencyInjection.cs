@@ -19,7 +19,6 @@ public static class DependencyInjection
             options.UseNpgsql(cs, npgsql =>
             {
                 npgsql.MigrationsAssembly(typeof(PersonnelAccessManagementDbContext).Assembly.FullName);
-                npgsql.EnableRetryOnFailure(3);
             });
 
             // Debug için (prod’da kapatılır)

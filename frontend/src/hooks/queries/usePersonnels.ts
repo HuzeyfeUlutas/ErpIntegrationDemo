@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { message } from 'antd';
+import { App } from 'antd';
 import { personnelApi } from '@/api/endpoints/personnels';
 import type { PersonnelFilter, UpdatePersonnelDto } from '@/api/types/personnel.types';
 
@@ -13,6 +13,8 @@ export const usePersonnels = (filter: PersonnelFilter) =>
 
 export const useUpdatePersonnel = (onSuccess?: () => void) => {
     const qc = useQueryClient();
+    const { message } = App.useApp();
+
     return useMutation({
         mutationFn: (data: UpdatePersonnelDto) => personnelApi.update(data),
         onSuccess: () => {
@@ -20,8 +22,10 @@ export const useUpdatePersonnel = (onSuccess?: () => void) => {
             message.success('Roller başarıyla güncellendi');
             onSuccess?.();
         },
-        onError: () => {
-            message.error('Roller güncellenirken bir hata oluştu');
+        onError: (err: any) => {
+            const data = err?.response?.data;
+            const msg = data?.detail ?? data?.title ?? 'Roller güncellenirken bir hata oluştu';
+            message.error(msg);
         },
     });
 };
