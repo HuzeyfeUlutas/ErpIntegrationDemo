@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PersonnelAccessManagement.Persistence.DbContexts;
@@ -11,9 +12,11 @@ using PersonnelAccessManagement.Persistence.DbContexts;
 namespace PersonnelAccessManagement.Persistence.Migrations
 {
     [DbContext(typeof(PersonnelAccessManagementDbContext))]
-    partial class PersonnelAccessManagementDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260217105322_ChangeEvent")]
+    partial class ChangeEvent
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -18,6 +18,7 @@ public sealed class Job : AuditableEntity<Guid>
     {
         Id = Guid.NewGuid();
         JobType = jobType;
+        CreatedAt = DateTime.UtcNow;
     }
 }
 

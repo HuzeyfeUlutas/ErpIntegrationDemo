@@ -22,6 +22,7 @@ public sealed class Personnel : AuditableEntity<Guid>
         FullName = fullName.Trim();
         Campus = campus;
         Title = title;
+        CreatedAt = DateTime.UtcNow;
     }
     
     public void SetRoles(IEnumerable<Role> roles)

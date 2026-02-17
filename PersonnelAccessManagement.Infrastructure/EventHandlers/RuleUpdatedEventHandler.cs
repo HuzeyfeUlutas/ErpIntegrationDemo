@@ -6,12 +6,12 @@ using PersonnelAccessManagement.Application.Features.Events;
 
 namespace PersonnelAccessManagement.Infrastructure.EventHandlers;
 
-public sealed class RuleCreatedEventHandler : ICapSubscribe
+public sealed class RuleUpdatedEventHandler : ICapSubscribe
 {
     private readonly IPersonnelRoleService _roleService;
     private readonly ILogger<RuleCreatedEventHandler> _logger;
 
-    public RuleCreatedEventHandler(
+    public RuleUpdatedEventHandler(
         IPersonnelRoleService roleService,
         ILogger<RuleCreatedEventHandler> logger)
     {
@@ -19,15 +19,11 @@ public sealed class RuleCreatedEventHandler : ICapSubscribe
         _logger = logger;
     }
 
-    [CapSubscribe(CapTopics.RuleCreated)]
+    [CapSubscribe(CapTopics.RuleUpdated)]
     public async Task HandleAsync(RuleIntegrationEvent @event)
     {
         _logger.LogInformation(
             "RuleCreated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
             @event.RuleId, @event.CorrelationId);
-
-        await _roleService.ApplyCreatedRuleToMatchingPersonnelAsync(
-            @event.RuleId,
-            @event.CorrelationId);
     }
 }

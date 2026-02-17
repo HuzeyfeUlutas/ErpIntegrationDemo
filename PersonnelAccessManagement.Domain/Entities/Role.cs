@@ -15,5 +15,6 @@ public sealed class Role : AuditableEntity<decimal>
     {
         Id = id;
         Name = name;
+        CreatedAt = DateTime.UtcNow;
     }
 }

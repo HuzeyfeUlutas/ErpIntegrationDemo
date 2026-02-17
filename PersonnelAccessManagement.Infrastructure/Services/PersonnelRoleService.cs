@@ -1,128 +1,147 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Exceptions;
+using PersonnelAccessManagement.Application.Common.Extensions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Domain.Entities;
 using PersonnelAccessManagement.Domain.Enums;
+
+namespace PersonnelAccessManagement.Infrastructure.Services;
 
 public sealed class PersonnelRoleService : IPersonnelRoleService
 {
     private const int BatchSize = 200;
 
-    private readonly IRepository<Personnel> _personnelRepo;
-    private readonly IRepository<Rule> _ruleRepo;
-    private readonly IRepository<Event> _eventRepo;
-    private readonly IUnitOfWork _uow;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IPersonnelRoleBatchProcessor _batchProcessor;
     private readonly ILogger<PersonnelRoleService> _logger;
 
     public PersonnelRoleService(
-        IRepository<Personnel> personnelRepo,
-        IRepository<Event> eventRepo,
-        IUnitOfWork uow,
+        IServiceScopeFactory scopeFactory,
+        IPersonnelRoleBatchProcessor batchProcessor,
         ILogger<PersonnelRoleService> logger)
     {
-        _personnelRepo = personnelRepo;
-        _eventRepo = eventRepo;
-        _uow = uow;
+        _scopeFactory = scopeFactory;
+        _batchProcessor = batchProcessor;
         _logger = logger;
     }
 
-    public async Task ApplyRuleToMatchingPersonnelAsync(
-        Guid ruleId,
-        string correlationId,
-        CancellationToken ct = default)
+    public async Task ApplyCreatedRuleToMatchingPersonnelAsync(
+        Guid ruleId, string correlationId, CancellationToken ct = default)
     {
-        // 1) Event kaydı
-        var rule = await _ruleRepo.Query()
-                       .Include(r => r.Roles)
-                       .FirstOrDefaultAsync(r => r.Id == ruleId && !r.IsDeleted, ct)
-                   ?? throw new NotFoundException($"Rule {ruleId} not found.");
+        // 1) Setup — kendi scope'u
+        var (eventId, roleIds, campus, title) = await SetupAsync(ruleId, correlationId, ct);
 
-        var campus = rule.Campus;
-        var title = rule.Title;
-        var roleIds = rule.Roles.Select(r => r.Id).ToList();
-        var roles = rule.Roles.ToDictionary(r => r.Id);
+        // 2) Batch loop
+        var lastEmployeeNo = 0m;
+        int totalSuccess = 0, totalFail = 0, processed = 0;
 
-        // Event kaydı
-        var sourceDetail = JsonSerializer.Serialize(new { campus, title, roleIds });
-        var evt = new Event(EventType.RuleCreated, ruleId.ToString(), correlationId, sourceDetail);
-        await _eventRepo.AddAsync(evt, ct);
-        await _uow.SaveChangesAsync(ct);
-        
-        var totalPersonnel = await _personnelRepo.Query()
-            .CountAsync(p => p.Campus == campus && p.Title == title && !p.IsDeleted, ct);
-
-        _logger.LogInformation(
-            "Rule {RuleId}: {Count} matching personnel (Campus={Campus}, Title={Title})",
-            ruleId, totalPersonnel, campus, title);
-
-        int successCount = 0, failCount = 0;
-        int processed = 0;
-
-        // 4) Batch processing
-        while (processed < totalPersonnel)
+        while (true)
         {
-            var batch = await _personnelRepo.Query()
-                .Where(p => p.Campus == campus && p.Title == title && !p.IsDeleted)
-                .Include(p => p.Roles)
-                .OrderBy(p => p.EmployeeNo)
-                .Skip(processed)
-                .Take(BatchSize)
-                .ToListAsync(ct);
+            // Personel ID'lerini hafif bir query ile çek (kendi scope'u)
+            List<Guid> personnelIds;
+            decimal batchLastNo;
 
-            if (batch.Count == 0) break;
-
-            foreach (var personnel in batch)
+            using (var scope = _scopeFactory.CreateScope())
             {
-                foreach (var roleId in roleIds)
-                {
-                    if (!roles.TryGetValue(roleId, out var role))
-                    {
-                        evt.AddLog(EventLog.Fail(
-                            evt.Id, personnel.EmployeeNo, personnel.FullName,
-                            roleId, "Unknown", "Assigned",
-                            $"Role {roleId} not found in database"));
-                        failCount++;
-                        continue;
-                    }
+                var personnelRepo = scope.ServiceProvider
+                    .GetRequiredService<IRepository<Personnel>>();
 
-                    try
-                    {
-                        personnel.AddRole(role);
+                var batch = await personnelRepo.QueryAsNoTracking()
+                    .Where(p => !p.IsDeleted)
+                    .FilterIf(p => p.Campus == campus, campus != null)
+                    .FilterIf(p => p.Title == title, title != null)
+                    .Where(p => p.EmployeeNo > lastEmployeeNo)
+                    .OrderBy(p => p.EmployeeNo)
+                    .Take(BatchSize)
+                    .Select(p => new { p.Id, p.EmployeeNo })
+                    .ToListAsync(ct);
 
-                        evt.AddLog(EventLog.Success(
-                            evt.Id, personnel.EmployeeNo, personnel.FullName,
-                            roleId, role.Name, "Assigned"));
-                        successCount++;
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex,
-                            "Failed: role {RoleId} → personnel {EmployeeNo}",
-                            roleId, personnel.EmployeeNo);
+                if (batch.Count == 0) break;
 
-                        evt.AddLog(EventLog.Fail(
-                            evt.Id, personnel.EmployeeNo, personnel.FullName,
-                            roleId, role.Name, "Assigned", ex.Message));
-                        failCount++;
-                    }
-                }
+                personnelIds = batch.Select(b => b.Id).ToList();
+                batchLastNo = batch[^1].EmployeeNo;
             }
 
-            // 5) Her batch sonrası kaydet
-            await _uow.SaveChangesAsync(ct);
-            processed += batch.Count;
+            // Generic processor'a gönder
+            var result = await _batchProcessor.ProcessBatchAsync(
+                personnelIds,
+                roleIdsToAdd: roleIds,
+                roleIdsToRemove: new List<decimal>(),
+                eventId,
+                ct);
 
-            _logger.LogInformation("Rule {RuleId}: {Processed}/{Total}", ruleId, processed, totalPersonnel);
+            totalSuccess += result.SuccessCount;
+            totalFail += result.FailCount;
+            processed += personnelIds.Count;
+            lastEmployeeNo = batchLastNo;
+
+            _logger.LogInformation("Rule {RuleId}: {Processed} processed", ruleId, processed);
         }
 
-        // 6) Event tamamla
-        evt.Complete(totalPersonnel, successCount, failCount);
-        await _uow.SaveChangesAsync(ct);
+        // 3) Complete
+        await CompleteAsync(eventId, processed, totalSuccess, totalFail, ct);
 
         _logger.LogInformation(
             "Rule {RuleId} done — Total: {Total}, Success: {Success}, Fail: {Fail}",
-            ruleId, totalPersonnel, successCount, failCount);
+            ruleId, processed, totalSuccess, totalFail);
+    }
+
+    public Task ApplyUpdatedRuleToMatchingPersonnelAsync(Guid ruleId, string correlationId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ApplyDeletedRuleToMatchingPersonnelAsync(Guid ruleId, string correlationId, CancellationToken ct = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    private async Task<(Guid EventId, List<decimal> RoleIds, Campus? Campus, Title? Title)>
+        SetupAsync(Guid ruleId, string correlationId, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var sp = scope.ServiceProvider;
+
+        var ruleRepo = sp.GetRequiredService<IRepository<Rule>>();
+        var eventRepo = sp.GetRequiredService<IRepository<Event>>();
+        var uow = sp.GetRequiredService<IUnitOfWork>();
+
+        var rule = await ruleRepo.QueryAsNoTracking()
+                       .FirstOrDefaultAsync(r => r.Id == ruleId && !r.IsDeleted, ct)
+                   ?? throw new NotFoundException($"Rule {ruleId} not found.");
+
+        var roleIds = await ruleRepo.QueryAsNoTracking()
+            .Where(r => r.Id == ruleId)
+            .SelectMany(r => r.Roles)
+            .Select(r => r.Id)
+            .ToListAsync(ct);
+
+        var sourceDetail = JsonSerializer.Serialize(new
+        {
+            campus = rule.Campus, title = rule.Title, roleIds
+        });
+
+        var evt = new Event(EventType.RuleCreated, ruleId.ToString(), correlationId, sourceDetail);
+        await eventRepo.AddAsync(evt, ct);
+        await uow.SaveChangesAsync(ct);
+
+        return (evt.Id, roleIds, rule.Campus, rule.Title);
+    }
+
+    private async Task CompleteAsync(
+        Guid eventId, int total, int success, int fail, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var sp = scope.ServiceProvider;
+
+        var eventRepo = sp.GetRequiredService<IRepository<Event>>();
+        var uow = sp.GetRequiredService<IUnitOfWork>();
+
+        var evt = await eventRepo.Query().FirstAsync(e => e.Id == eventId, ct);
+        evt.Complete(total, success, fail);
+        await uow.SaveChangesAsync(ct);
     }
 }

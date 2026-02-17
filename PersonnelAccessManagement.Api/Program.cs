@@ -3,7 +3,9 @@ using Elastic.Ingest.Elasticsearch.DataStreams;
 using Elastic.Serilog.Sinks;
 using PersonnelAccessManagement.Api.Middlewares;
 using PersonnelAccessManagement.Api.Observability;
+using PersonnelAccessManagement.Api.Services;
 using PersonnelAccessManagement.Application;
+using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Infrastructure;
 using PersonnelAccessManagement.Infrastructure.Seeders;
 using PersonnelAccessManagement.Persistence;
@@ -67,6 +69,9 @@ builder.Services.AddControllers()
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICorrelationIdAccessor, HttpCorrelationIdAccessor>();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);

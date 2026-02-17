@@ -31,6 +31,7 @@ public sealed class EventLog : AuditableEntity<Guid>
             RoleId = roleId,
             RoleName = roleName,
             Action = action,
+            CreatedAt = DateTime.UtcNow,
             Status = EventLogStatus.Success
         };
     }
@@ -48,6 +49,7 @@ public sealed class EventLog : AuditableEntity<Guid>
             RoleId = roleId,
             RoleName = roleName,
             Action = action,
+            CreatedAt = DateTime.UtcNow,
             Status = EventLogStatus.Failed,
             Error = error
         };

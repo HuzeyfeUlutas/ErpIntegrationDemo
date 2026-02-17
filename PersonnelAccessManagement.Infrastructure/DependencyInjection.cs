@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Options;
+using PersonnelAccessManagement.Infrastructure.EventHandlers;
+using PersonnelAccessManagement.Infrastructure.Services;
 using PersonnelAccessManagement.Persistence.DbContexts;
 using PersonnelAccessManagement.Persistence.Repositories;
 
@@ -50,6 +52,7 @@ public static class DependencyInjection
             cap.ConsumerThreadCount = 1;
         });
         
+        services.AddScoped<IPersonnelRoleBatchProcessor, PersonnelRoleBatchProcessor>();
         services.AddScoped<IPersonnelRoleService, PersonnelRoleService>();
         services.AddTransient<RuleCreatedEventHandler>();
 

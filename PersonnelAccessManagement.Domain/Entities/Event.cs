@@ -1,8 +1,9 @@
 // Domain/Entities/Event.cs
 
 using PersonnelAccessManagement.Domain.Common;
-using PersonnelAccessManagement.Domain.Entities;
 using PersonnelAccessManagement.Domain.Enums;
+
+namespace PersonnelAccessManagement.Domain.Entities;
 
 public sealed class Event : AuditableEntity<Guid>
 {
@@ -29,6 +30,7 @@ public sealed class Event : AuditableEntity<Guid>
         SourceDetail = sourceDetail;
         CorrelationId = correlationId.Trim();
         OccurredAt = DateTime.UtcNow;
+        CreatedAt = DateTime.UtcNow;
     }
 
     public void AddLog(EventLog log) => Logs.Add(log);
