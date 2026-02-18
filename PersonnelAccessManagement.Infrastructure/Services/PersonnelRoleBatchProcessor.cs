@@ -56,6 +56,9 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
 
         foreach (var personnel in personnelList)
         {
+            var personHasFailure = false;
+
+            // ── Ekle ──
             foreach (var roleId in roleIdsToAdd)
             {
                 if (!roles.TryGetValue(roleId, out var role))
@@ -63,33 +66,36 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
                     var log = EventLog.Fail(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, "Unknown", "Assigned",
                         $"Role {roleId} not found");
-                    
-                    evt.AddLog(log); 
+
+                    evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    fail++;
+
+                    personHasFailure = true;
                     continue;
                 }
 
                 try
                 {
+                    personnel.AddRole(role);
+
                     var log = EventLog.Success(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, role.Name, "Assigned");
-                    
-                    personnel.AddRole(role);
+
                     evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    success++;
                 }
                 catch (Exception ex)
                 {
                     var log = EventLog.Fail(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, role.Name, "Assigned", ex.Message);
-                    
+
                     _logger.LogError(ex, "Add failed: {RoleId} → {EmployeeNo}",
                         roleId, personnel.EmployeeNo);
+
                     evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    fail++;
+
+                    personHasFailure = true;
                 }
             }
 
@@ -101,50 +107,46 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
                     var log = EventLog.Fail(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, "Unknown", "Revoked",
                         $"Role {roleId} not found");
-                    
+
                     evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    fail++;
+
+                    personHasFailure = true;
                     continue;
                 }
 
                 try
                 {
+                    personnel.RemoveRole(role.Id);
+
                     var log = EventLog.Success(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, role.Name, "Revoked");
-                    
-                    personnel.RemoveRole(role.Id);
+
                     evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    success++;
                 }
                 catch (Exception ex)
                 {
                     var log = EventLog.Fail(evt.Id, personnel.EmployeeNo,
                         personnel.FullName, roleId, role.Name, "Revoked", ex.Message);
-                    
+
                     _logger.LogError(ex, "Remove failed: {RoleId} → {EmployeeNo}",
                         roleId, personnel.EmployeeNo);
+
                     evt.AddLog(log);
                     await eventLogRepo.AddAsync(log, ct);
-                    fail++;
+
+                    personHasFailure = true;
                 }
             }
+
+            // ✅ Personel bazlı sayaç
+            if (personHasFailure) fail++;
+            else success++;
         }
 
-        try
-        {
-            await uow.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateConcurrencyException ex)
-        {
-            foreach (var entry in ex.Entries)
-            {
-                Console.WriteLine(
-                    $"⚠️ Concurrency on {entry.Entity.GetType().Name} | State={entry.State} | PK={string.Join(",", entry.Properties.Where(p => p.Metadata.IsPrimaryKey()).Select(p => $"{p.Metadata.Name}={p.CurrentValue}"))}");
-            }
-            throw;
-        }
+
+        await uow.SaveChangesAsync(ct);
 
         return new BatchResult(success, fail);
     }

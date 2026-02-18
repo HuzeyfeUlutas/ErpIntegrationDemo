@@ -1,4 +1,4 @@
-namespace PersonnelAccessManagement.Application.Features.Events;
+namespace PersonnelAccessManagement.Application.Features.Rules.Events;
 
 public sealed record RuleIntegrationEvent
 {

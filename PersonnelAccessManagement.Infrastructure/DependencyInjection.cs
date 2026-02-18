@@ -54,7 +54,10 @@ public static class DependencyInjection
         
         services.AddScoped<IPersonnelRoleBatchProcessor, PersonnelRoleBatchProcessor>();
         services.AddScoped<IPersonnelRoleService, PersonnelRoleService>();
+        services.AddScoped<IRoleReconciliationEngine, RoleReconciliationEngine>();
         services.AddTransient<RuleCreatedEventHandler>();
+        services.AddTransient<RuleDeletedEventHandler>();
+        services.AddTransient<RuleUpdatedEventHandler>();
 
         return services;
     }

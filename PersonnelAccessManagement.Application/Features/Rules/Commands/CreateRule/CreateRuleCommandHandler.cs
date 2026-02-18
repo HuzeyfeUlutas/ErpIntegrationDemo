@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Exceptions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
-using PersonnelAccessManagement.Application.Features.Events;
+using PersonnelAccessManagement.Application.Features.Rules.Events;
 using PersonnelAccessManagement.Domain.Entities;
 
 namespace PersonnelAccessManagement.Application.Features.Rules.Commands.CreateRule;

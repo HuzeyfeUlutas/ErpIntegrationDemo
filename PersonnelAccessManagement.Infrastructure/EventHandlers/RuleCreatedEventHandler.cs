@@ -2,7 +2,7 @@ using DotNetCore.CAP;
 using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Interfaces;
-using PersonnelAccessManagement.Application.Features.Events;
+using PersonnelAccessManagement.Application.Features.Rules.Events;
 
 namespace PersonnelAccessManagement.Infrastructure.EventHandlers;
 

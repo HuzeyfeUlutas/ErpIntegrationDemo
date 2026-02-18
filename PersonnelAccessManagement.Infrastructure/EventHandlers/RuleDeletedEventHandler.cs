@@ -2,18 +2,18 @@ using DotNetCore.CAP;
 using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Interfaces;
-using PersonnelAccessManagement.Application.Features.Events;
+using PersonnelAccessManagement.Application.Features.Rules.Events;
 
 namespace PersonnelAccessManagement.Infrastructure.EventHandlers;
 
 public sealed class RuleDeletedEventHandler : ICapSubscribe
 {
     private readonly IPersonnelRoleService _roleService;
-    private readonly ILogger<RuleCreatedEventHandler> _logger;
+    private readonly ILogger<RuleDeletedEventHandler> _logger;
 
     public RuleDeletedEventHandler(
         IPersonnelRoleService roleService,
-        ILogger<RuleCreatedEventHandler> logger)
+        ILogger<RuleDeletedEventHandler> logger)
     {
         _roleService = roleService;
         _logger = logger;
@@ -23,7 +23,10 @@ public sealed class RuleDeletedEventHandler : ICapSubscribe
     public async Task HandleAsync(RuleIntegrationEvent @event)
     {
         _logger.LogInformation(
-            "RuleCreated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+            "RuleDeleted received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+            @event.RuleId, @event.CorrelationId);
+
+        await _roleService.ApplyDeletedRuleToMatchingPersonnelAsync(
             @event.RuleId, @event.CorrelationId);
     }
 }

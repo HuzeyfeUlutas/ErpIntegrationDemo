@@ -1,15 +1,14 @@
+import {EventDto} from "@/api/types/event.types.ts";
+
 export interface DashboardStats {
-  totalUsers: number;
-  totalProducts: number;
-  totalCategories: number;
-  activeUsers: number;
-  lowStockProducts: number;
-  recentActivities: Activity[];
+  totalPersonnel: number;
+  totalRules: number;
+  activeRules: number;
+  totalEvents: number;
+  totalJobs: number;
 }
 
-export interface Activity {
-  id: string;
-  type: 'user_created' | 'product_added' | 'category_updated' | 'user_deleted';
-  description: string;
-  timestamp: string;
+export interface DashboardDto {
+  stats: DashboardStats;
+  recentEvents: EventDto[];
 }

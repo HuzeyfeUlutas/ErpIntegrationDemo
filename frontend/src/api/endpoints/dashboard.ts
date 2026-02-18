@@ -1,10 +1,7 @@
-import type { DashboardStats } from '@/api/types/dashboard.types';
-import { mockDashboardApi } from '@/mocks/dashboard';
-// import axiosInstance from '@/api/axiosInstance';
+import type {DashboardDto} from '@/api/types/dashboard.types';
+import axiosInstance from '../axiosInstance';
 
 export const dashboardApi = {
-  getStats: (): Promise<DashboardStats> => {
-    return mockDashboardApi.getStats();
-    // return axiosInstance.get<DashboardStats>('/dashboard/stats').then(res => res.data);
-  },
+  get: (): Promise<DashboardDto> =>
+      axiosInstance.get('/dashboard').then((res) => res.data),
 };

@@ -2,18 +2,18 @@ using DotNetCore.CAP;
 using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Interfaces;
-using PersonnelAccessManagement.Application.Features.Events;
+using PersonnelAccessManagement.Application.Features.Rules.Events;
 
 namespace PersonnelAccessManagement.Infrastructure.EventHandlers;
 
 public sealed class RuleUpdatedEventHandler : ICapSubscribe
 {
     private readonly IPersonnelRoleService _roleService;
-    private readonly ILogger<RuleCreatedEventHandler> _logger;
+    private readonly ILogger<RuleUpdatedEventHandler> _logger;
 
     public RuleUpdatedEventHandler(
         IPersonnelRoleService roleService,
-        ILogger<RuleCreatedEventHandler> logger)
+        ILogger<RuleUpdatedEventHandler> logger)
     {
         _roleService = roleService;
         _logger = logger;
@@ -23,7 +23,10 @@ public sealed class RuleUpdatedEventHandler : ICapSubscribe
     public async Task HandleAsync(RuleIntegrationEvent @event)
     {
         _logger.LogInformation(
-            "RuleCreated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+            "RuleUpdated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+            @event.RuleId, @event.CorrelationId);
+
+        await _roleService.ApplyUpdatedRuleToMatchingPersonnelAsync(
             @event.RuleId, @event.CorrelationId);
     }
 }

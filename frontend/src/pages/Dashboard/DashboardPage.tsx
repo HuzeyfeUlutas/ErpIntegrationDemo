@@ -1,132 +1,189 @@
-import { Card, Col, Row, Statistic, Table, Tag, Spin } from 'antd';
+import { Card, Col, Row, Statistic, Table, Tag, Spin, Progress, Space } from 'antd';
 import {
-  UserOutlined,
-  ShoppingOutlined,
-  AppstoreOutlined,
+  TeamOutlined,
+  SafetyCertificateOutlined,
   ThunderboltOutlined,
-  WarningOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
-import { useDashboardStats } from '@/hooks/queries/useDashboard';
+import { useDashboard } from '@/hooks/queries/useDashboard';
 import { PageHeader } from '@/components/shared/PageHeader';
-import type { Activity } from '@/api/types/dashboard.types';
 import dayjs from 'dayjs';
+import {EventDto} from "@/api/types/event.types.ts";
 
-const activityTypeMap: Record<Activity['type'], { color: string; label: string }> = {
-  user_created: { color: 'green', label: 'Kullanıcı' },
-  product_added: { color: 'blue', label: 'Ürün' },
-  category_updated: { color: 'orange', label: 'Kategori' },
-  user_deleted: { color: 'red', label: 'Silme' },
+const eventTypeColorMap: Record<string, { color: string; label: string }> = {
+  RuleApplied: { color: 'blue', label: 'Kural Uygulandı' },
+  RoleAssigned: { color: 'green', label: 'Rol Atandı' },
+  RoleRevoked: { color: 'red', label: 'Rol Kaldırıldı' },
+  Sync: { color: 'orange', label: 'Senkronizasyon' },
 };
 
-const activityColumns = [
+const getEventTag = (type: string) => {
+  const config = eventTypeColorMap[type];
+  if (config) return <Tag color={config.color}>{config.label}</Tag>;
+  return <Tag color="default">{type}</Tag>;
+};
+
+const eventColumns = [
+  {
+    title: '#',
+    key: 'index',
+    width: 50,
+    render: (_: unknown, __: unknown, index: number) => index + 1,
+  },
   {
     title: 'Tip',
-    dataIndex: 'type',
-    key: 'type',
-    width: 100,
-    render: (type: Activity['type']) => {
-      const config = activityTypeMap[type];
-      return <Tag color={config.color}>{config.label}</Tag>;
+    dataIndex: 'eventType',
+    key: 'eventType',
+    width: 160,
+    render: (type: string) => getEventTag(type),
+  },
+  {
+    title: 'Kaynak',
+    dataIndex: 'sourceId',
+    key: 'sourceId',
+    width: 140,
+  },
+  {
+    title: 'Detay',
+    dataIndex: 'sourceDetail',
+    key: 'sourceDetail',
+    ellipsis: true,
+    render: (val: string | null) => val ?? '-',
+  },
+  {
+    title: 'Sonuç',
+    key: 'result',
+    width: 180,
+    render: (_: unknown, record: EventDto) => {
+      if (!record.isCompleted) {
+        return <Tag color="processing">Devam ediyor...</Tag>;
+      }
+      const total = record.totalCount || 1;
+      const percent = Math.round((record.successCount / total) * 100);
+      return (
+          <Space size={4}>
+            <Progress
+                type="circle"
+                size={28}
+                percent={percent}
+                strokeColor={percent === 100 ? '#52c41a' : '#faad14'}
+            />
+            <span style={{ fontSize: 12 }}>
+            {record.successCount}/{record.totalCount}
+          </span>
+            {record.failCount > 0 && (
+                <Tag color="error" style={{ fontSize: 11 }}>{record.failCount} hata</Tag>
+            )}
+          </Space>
+      );
     },
   },
   {
-    title: 'Açıklama',
-    dataIndex: 'description',
-    key: 'description',
+    title: 'Durum',
+    dataIndex: 'isCompleted',
+    key: 'isCompleted',
+    width: 100,
+    render: (val: boolean) =>
+        val
+            ? <Tag color="success">Tamamlandı</Tag>
+            : <Tag color="processing">İşleniyor</Tag>,
   },
   {
     title: 'Tarih',
-    dataIndex: 'timestamp',
-    key: 'timestamp',
-    width: 160,
+    dataIndex: 'occurredAt',
+    key: 'occurredAt',
+    width: 150,
     render: (val: string) => dayjs(val).format('DD.MM.YYYY HH:mm'),
   },
 ];
 
 export function DashboardPage() {
-  const { data: stats, isLoading } = useDashboardStats();
+  const { data, isLoading } = useDashboard();
 
-  if (isLoading) {
+  if (isLoading && !data) {
     return (
-      <div style={{ textAlign: 'center', padding: 80 }}>
-        <Spin size="large" />
-      </div>
+        <div style={{ textAlign: 'center', padding: 80 }}>
+          <Spin size="large" />
+        </div>
     );
   }
 
+  const stats = data?.stats;
+
   return (
-    <>
-      <PageHeader title="Dashboard" />
+      <>
+        <PageHeader title="Dashboard" />
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Toplam Kullanıcı"
-              value={stats?.totalUsers}
-              prefix={<UserOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Aktif Kullanıcı"
-              value={stats?.activeUsers}
-              prefix={<ThunderboltOutlined />}
-              valueStyle={{ color: '#3f8600' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Toplam Ürün"
-              value={stats?.totalProducts}
-              prefix={<ShoppingOutlined />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card>
-            <Statistic
-              title="Düşük Stok"
-              value={stats?.lowStockProducts}
-              prefix={<WarningOutlined />}
-              valueStyle={{ color: '#cf1322' }}
-            />
-          </Card>
-        </Col>
-      </Row>
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                  title="Toplam Personel"
+                  value={stats?.totalPersonnel ?? 0}
+                  prefix={<TeamOutlined />}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                  title="Toplam Kural"
+                  value={stats?.totalRules ?? 0}
+                  prefix={<SafetyCertificateOutlined />}
+                  suffix={
+                    <span style={{ fontSize: 14, color: '#52c41a' }}>
+                  ({stats?.activeRules ?? 0} aktif)
+                </span>
+                  }
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                  title="Toplam Event"
+                  value={stats?.totalEvents ?? 0}
+                  prefix={<ThunderboltOutlined />}
+                  valueStyle={{ color: '#1677ff' }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={12} lg={6}>
+            <Card>
+              <Statistic
+                  title="Tamamlanan Job"
+                  value={stats?.totalJobs ?? 0}
+                  prefix={<CheckCircleOutlined />}
+                  valueStyle={{ color: '#52c41a' }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
-      <Row gutter={[16, 16]}>
-        <Col xs={24} lg={16}>
-          <Card title="Son Aktiviteler">
-            <Table
-              columns={activityColumns}
-              dataSource={stats?.recentActivities}
+        <Card title="Son Eventler">
+          <Table
+              columns={eventColumns}
+              dataSource={data?.recentEvents ?? []}
               rowKey="id"
               pagination={false}
               size="small"
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={8}>
-          <Card title="Hızlı Bilgi">
-            <Statistic
-              title="Toplam Kategori"
-              value={stats?.totalCategories}
-              prefix={<AppstoreOutlined />}
-              style={{ marginBottom: 16 }}
-            />
-            <Statistic
-              title="Toplam Ürün"
-              value={stats?.totalProducts}
-              prefix={<ShoppingOutlined />}
-            />
-          </Card>
-        </Col>
-      </Row>
-    </>
+              scroll={{ x: 900 }}
+          />
+        </Card>
+        <div style={{marginTop: 20}}>
+
+        </div>
+
+        <Card title="Son Joblar">
+          <Table
+              columns={eventColumns}
+              dataSource={data?.recentEvents ?? []}
+              rowKey="id"
+              pagination={false}
+              size="small"
+              scroll={{ x: 900 }}
+          />
+        </Card>
+      </>
   );
 }
