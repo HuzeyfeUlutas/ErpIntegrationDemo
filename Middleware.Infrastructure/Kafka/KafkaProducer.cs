@@ -17,10 +17,15 @@ public sealed class KafkaProducer : IDisposable, IEventPublisher
         _producer = new ProducerBuilder<string, string>(config).Build();
     }
 
+    private static readonly JsonSerializerOptions JsonOpts = new()
+    {
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+    };
+
     public async Task PublishAsync(PersonnelLifecycleEvent evt, CancellationToken ct)
     {
         var key = evt.EmployeeNo;
-        var payload = JsonSerializer.Serialize(evt);
+        var payload = JsonSerializer.Serialize(evt, JsonOpts);
         await _producer.ProduceAsync(_opt.Topic, new Message<string, string> { Key = key, Value = payload }, ct);
     }
 

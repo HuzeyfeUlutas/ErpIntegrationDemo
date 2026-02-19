@@ -1,12 +1,10 @@
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Options;
 using PersonnelAccessManagement.Infrastructure.EventHandlers;
+using PersonnelAccessManagement.Infrastructure.Kafka;
 using PersonnelAccessManagement.Infrastructure.Services;
-using PersonnelAccessManagement.Persistence.DbContexts;
-using PersonnelAccessManagement.Persistence.Repositories;
 
 namespace PersonnelAccessManagement.Infrastructure;
 
@@ -58,6 +56,20 @@ public static class DependencyInjection
         services.AddTransient<RuleCreatedEventHandler>();
         services.AddTransient<RuleDeletedEventHandler>();
         services.AddTransient<RuleUpdatedEventHandler>();
+        
+        services.AddOptions<KafkaConsumerOptions>()
+            .Bind(configuration.GetSection(KafkaConsumerOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        
+        services.AddOptions<PersonnelRoleOptions>()
+            .Bind(configuration.GetSection(PersonnelRoleOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        
+        services.AddHostedService<KafkaPersonnelConsumer>();
+        services.AddTransient<HiredEventHandler>();
+        services.AddTransient<TerminatedEventHandler>();
 
         return services;
     }

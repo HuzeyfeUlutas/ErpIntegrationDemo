@@ -2,9 +2,11 @@ using System.Text.Json;
 using DotNetCore.CAP;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Exceptions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
+using PersonnelAccessManagement.Application.Features.Rules.Dtos;
 using PersonnelAccessManagement.Application.Features.Rules.Events;
 using PersonnelAccessManagement.Domain.Entities;
 using PersonnelAccessManagement.Domain.Enums;
@@ -18,23 +20,31 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
     private readonly IRepository<Event> _events;
     private readonly IUnitOfWork _uow;
     private readonly ICapPublisher _capPublisher;
+    private readonly ILogger<UpdateRuleCommandHandler> _logger;
+    private readonly ICorrelationIdAccessor _correlationIdAccessor;
 
     public UpdateRuleCommandHandler(
         IRepository<Rule> rules,
         IRepository<Role> roles,
         IRepository<Event> events,
         IUnitOfWork uow,
-        ICapPublisher capPublisher)
+        ICapPublisher capPublisher,
+        ILogger<UpdateRuleCommandHandler> logger,
+        ICorrelationIdAccessor correlationIdAccessor)
     {
         _rules = rules;
         _roles = roles;
         _events = events;
         _uow = uow;
         _capPublisher = capPublisher;
+        _logger = logger;
+        _correlationIdAccessor = correlationIdAccessor;
     }
 
     public async Task Handle(UpdateRuleCommand request, CancellationToken ct)
     {
+        var correlationId = _correlationIdAccessor.CorrelationId;
+        
         var rule = await _rules.Query()
             .Include(r => r.Roles)
             .Where(r => !r.IsDeleted)
@@ -61,8 +71,6 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
             throw new NotFoundException("One or more roles were not found.");
 
         // ─── Eski durumu kaydet (reconciliation için) ───
-
-        var correlationId = Guid.NewGuid().ToString();
         var oldRoleIds = rule.Roles.Select(r => r.Id).ToList();
 
         bool hasChanges = rule.Campus != request.Campus
@@ -72,12 +80,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
 
         if (hasChanges)
         {
-            var oldSnapshot = JsonSerializer.Serialize(new
-            {
-                campus = rule.Campus,
-                title = rule.Title,
-                roleIds = oldRoleIds
-            });
+            var oldSnapshot = JsonSerializer.Serialize(new RuleSnapshot(rule.Campus, rule.Title, oldRoleIds));
 
             var snapshotEvent = new Event(
                 EventType.RuleUpdated,

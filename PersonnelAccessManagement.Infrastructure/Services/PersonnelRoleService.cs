@@ -103,24 +103,28 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
         var (eventId, oldSnap, newSnap) =
             await SetupForUpdateAsync(ruleId, correlationId, ct);
 
+        bool criteriaChanged = oldSnap.Campus != newSnap.Campus
+                               || oldSnap.Title != newSnap.Title;
+
+        var rolesToAdd = criteriaChanged
+            ? newSnap.RoleIds
+            : newSnap.RoleIds.Except(oldSnap.RoleIds).ToList();
+
+        var rolesToRemove = criteriaChanged
+            ? oldSnap.RoleIds
+            : oldSnap.RoleIds.Except(newSnap.RoleIds).ToList();
+
         int totalProcessed = 0, totalSuccess = 0, totalFail = 0;
 
-        bool criteriaChanged = oldSnap.Campus != newSnap.Campus
-                            || oldSnap.Title != newSnap.Title;
-        bool rolesRemoved = oldSnap.RoleIds.Except(newSnap.RoleIds).Any();
-
-        // ─── PHASE 1: Kaldır ───
-
-        if (rolesRemoved || criteriaChanged)
+        // ─── Eski kriterlere uyan personelden kaldır (criteria değiştiyse) ───
+        if (criteriaChanged && rolesToRemove.Count > 0)
         {
-            var newRuleAsExtra = new OverlappingRuleDto(
-                newSnap.Campus, newSnap.Title, newSnap.RoleIds);
-
             var plan = await _reconciliationEngine.BuildPlanAsync(
                 oldSnap.Campus, oldSnap.Title,
-                oldSnap.RoleIds.ToHashSet(),
+                rolesToRemove.ToHashSet(),
                 excludeRuleId: ruleId,
-                extraRules: new[] { newRuleAsExtra }, ct);
+                extraRules: new[] { new OverlappingRuleDto(newSnap.Campus, newSnap.Title, newSnap.RoleIds) },
+                ct);
 
             if (plan.HasWork)
             {
@@ -129,28 +133,23 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
             }
         }
 
-        // ─── PHASE 2: Ekle ───
-
-        var rolesToAdd = criteriaChanged
-            ? newSnap.RoleIds
-            : newSnap.RoleIds.Except(oldSnap.RoleIds).ToList();
-
-        if (rolesToAdd.Count > 0)
+        // ─── Yeni kriterlere uyan personele tek geçişte ekle + kaldır ───
+        if (rolesToAdd.Count > 0 || (!criteriaChanged && rolesToRemove.Count > 0))
         {
+            var effectiveRemove = criteriaChanged
+                ? new List<decimal>()   // zaten yukarıda reconcile edildi
+                : rolesToRemove;
+
             var (p, s, f) = await ProcessMatchingPersonnelAsync(
                 newSnap.Campus, newSnap.Title,
                 rolesToAdd: rolesToAdd,
-                rolesToRemove: new List<decimal>(),
+                rolesToRemove: effectiveRemove,
                 eventId, ct);
 
             totalProcessed += p; totalSuccess += s; totalFail += f;
         }
 
         await CompleteAsync(eventId, totalProcessed, totalSuccess, totalFail, ct);
-
-        _logger.LogInformation(
-            "RuleUpdated {RuleId} — Total:{Total} Success:{Success} Fail:{Fail}",
-            ruleId, totalProcessed, totalSuccess, totalFail);
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -347,26 +346,27 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         var newSnap = new RuleSnapshot(rule.Campus, rule.Title, newRoleIds);
 
-        var lastEvent = await eventRepo.QueryAsNoTracking()
-            .Where(e => e.SourceId == ruleId.ToString()
-                     && e.CorrelationId == correlationId
-                     && e.EventType == EventType.RuleUpdated)
-            .OrderByDescending(e => e.CreatedAt)
-            .FirstOrDefaultAsync(ct)
-            ?? throw new NotFoundException(
-                $"Pre-update snapshot event not found for Rule {ruleId}");
+        // ── Mevcut event'i bul (command handler'ın oluşturduğu) ──
+        var evt = await eventRepo.Query()   // tracking açık!
+                      .Where(e => e.SourceId == ruleId.ToString()
+                                  && e.CorrelationId == correlationId
+                                  && e.EventType == EventType.RuleUpdated)
+                      .OrderByDescending(e => e.CreatedAt)
+                      .FirstOrDefaultAsync(ct)
+                  ?? throw new NotFoundException(
+                      $"Pre-update snapshot event not found for Rule {ruleId}");
 
-        var oldSnap = JsonSerializer.Deserialize<RuleSnapshot>(lastEvent.SourceDetail)
-            ?? throw new InvalidOperationException("Could not deserialize old rule snapshot.");
+        var oldSnap = JsonSerializer.Deserialize<RuleSnapshot>(evt.SourceDetail!)
+                      ?? throw new InvalidOperationException("Could not deserialize old rule snapshot.");
 
+        // ── Aynı event'i güncelle, yenisini oluşturma ──
         var sourceDetail = JsonSerializer.Serialize(new
         {
             oldCampus = oldSnap.Campus, oldTitle = oldSnap.Title, oldRoleIds = oldSnap.RoleIds,
             newCampus = newSnap.Campus, newTitle = newSnap.Title, newRoleIds = newSnap.RoleIds
         });
 
-        var evt = new Event(EventType.RuleUpdated, ruleId.ToString(), correlationId, sourceDetail);
-        await eventRepo.AddAsync(evt, ct);
+        evt.UpdateSourceDetail(sourceDetail);
         await uow.SaveChangesAsync(ct);
 
         return (evt.Id, oldSnap, newSnap);

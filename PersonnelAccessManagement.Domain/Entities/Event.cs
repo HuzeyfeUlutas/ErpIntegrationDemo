@@ -32,6 +32,11 @@ public sealed class Event : AuditableEntity<Guid>
         OccurredAt = DateTime.UtcNow;
         CreatedAt = DateTime.UtcNow;
     }
+    
+    public void UpdateSourceDetail(string sourceDetail)
+    {
+        SourceDetail = sourceDetail;
+    }
 
     public void AddLog(EventLog log) => Logs.Add(log);
 

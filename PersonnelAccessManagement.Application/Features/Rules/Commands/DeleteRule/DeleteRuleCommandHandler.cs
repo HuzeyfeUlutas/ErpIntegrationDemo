@@ -1,6 +1,7 @@
 using DotNetCore.CAP;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Exceptions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
@@ -14,19 +15,27 @@ public sealed class DeleteRuleCommandHandler : IRequestHandler<DeleteRuleCommand
     private readonly IRepository<Rule> _rules;
     private readonly IUnitOfWork _uow;
     private readonly ICapPublisher _capPublisher;
+    private readonly ILogger<DeleteRuleCommandHandler> _logger;
+    private readonly ICorrelationIdAccessor _correlationIdAccessor;
 
     public DeleteRuleCommandHandler(
         IRepository<Rule> rules,
         IUnitOfWork uow,
-        ICapPublisher capPublisher)
+        ICapPublisher capPublisher,
+        ILogger<DeleteRuleCommandHandler> logger,
+        ICorrelationIdAccessor correlationIdAccessor)
     {
         _rules = rules;
         _uow = uow;
         _capPublisher = capPublisher;
+        _logger = logger;
+        _correlationIdAccessor = correlationIdAccessor;
     }
 
     public async Task Handle(DeleteRuleCommand request, CancellationToken ct)
     {
+        var correlationId = _correlationIdAccessor.CorrelationId;
+        
         var rule = await _rules.Query()
             .FirstOrDefaultAsync(r => r.Id == request.Id && !r.IsDeleted, ct);
 
@@ -34,9 +43,7 @@ public sealed class DeleteRuleCommandHandler : IRequestHandler<DeleteRuleCommand
             throw new NotFoundException($"Rule not found: {request.Id}");
 
         rule.SoftDelete();
-
-        var correlationId = Guid.NewGuid().ToString();
-
+        
         await _uow.SaveChangesAsync(ct);
 
         // Soft-delete sonrası publish — PersonnelRoleService kuralı hâlâ okuyabilir
