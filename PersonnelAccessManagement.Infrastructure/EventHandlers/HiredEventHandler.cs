@@ -41,6 +41,19 @@ public sealed class HiredEventHandler : ICapSubscribe
             _logger.LogWarning("Duplicate event {EventId} for HIRED, skipping.", @event.EventId);
             return;
         }
+        
+        var alreadyScheduled = await _scheduledActionRepo.QueryAsNoTracking()
+            .AnyAsync(x => x.EmployeeNo == @event.EmployeeNo
+                           && x.ActionType == ScheduledActionType.Hire
+                           && x.Status == ScheduledActionStatus.Pending);
+
+        if (alreadyScheduled)
+        {
+            _logger.LogWarning(
+                "Personnel {EmployeeNo} already has a pending HIRE action, skipping EventId: {EventId}.",
+                @event.EmployeeNo, @event.EventId);
+            return;
+        }
 
         var action = new PersonnelScheduledAction
         {

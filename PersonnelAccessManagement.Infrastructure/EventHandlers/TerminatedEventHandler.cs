@@ -51,6 +51,19 @@ public sealed class TerminatedEventHandler : ICapSubscribe
             _logger.LogWarning("Duplicate event {EventId} for TERMINATED, skipping.", @event.EventId);
             return;
         }
+        
+        var alreadyScheduled = await _scheduledActionRepo.QueryAsNoTracking()
+            .AnyAsync(x => x.EmployeeNo == @event.EmployeeNo
+                           && x.ActionType == ScheduledActionType.Terminate
+                           && x.Status == ScheduledActionStatus.Pending);
+
+        if (alreadyScheduled)
+        {
+            _logger.LogWarning(
+                "Personnel {EmployeeNo} already has a pending TERMINATE action, skipping EventId: {EventId}.",
+                @event.EmployeeNo, @event.EventId);
+            return;
+        }
 
         // 2) Personeli bul
         var personnel = await _personnelRepo.Query()
@@ -64,27 +77,27 @@ public sealed class TerminatedEventHandler : ICapSubscribe
         }
         else
         {
-            // 3) Aktif rolü kaldır (Exiting olmayan)
-            var activeRole = personnel.Roles.FirstOrDefault(r => r.Id != _roleOptions.ExitingRoleId);
+            // 3) DefaultHireRole'ü kaldır
+            var activeRole = personnel.Roles.FirstOrDefault(r => r.Id == _roleOptions.DefaultHireRoleId);
 
             if (activeRole is not null)
             {
                 personnel.RemoveRole(activeRole.Id);
-                _logger.LogInformation("Removed role {RoleId} from {EmployeeNo}", activeRole.Id, @event.EmployeeNo);
+                _logger.LogInformation("Removed DefaultHireRole {RoleId} from {EmployeeNo}", activeRole.Id, @event.EmployeeNo);
             }
 
-            // 4) Exiting rolünü ekle
+            // 4) ExitingRole'ü ekle
             var exitingRole = await _roleRepo.Query()
                 .FirstOrDefaultAsync(r => r.Id == _roleOptions.ExitingRoleId);
 
             if (exitingRole is not null)
             {
                 personnel.AddRole(exitingRole);
-                _logger.LogInformation("Assigned Exiting role {RoleId} to {EmployeeNo}", exitingRole.Id, @event.EmployeeNo);
+                _logger.LogInformation("Assigned ExitingRole {RoleId} to {EmployeeNo}", exitingRole.Id, @event.EmployeeNo);
             }
             else
             {
-                _logger.LogError("Exiting role {RoleId} not found in database!", _roleOptions.ExitingRoleId);
+                _logger.LogError("ExitingRole {RoleId} not found in database!", _roleOptions.ExitingRoleId);
             }
 
             _personnelRepo.Update(personnel);

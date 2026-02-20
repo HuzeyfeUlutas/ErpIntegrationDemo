@@ -16,6 +16,7 @@ export interface CreateRuleDto {
     campus: Campus | null;
     title: Title | null;
     roleIds: number[];
+    applyToExistingPersonnel: boolean;
 }
 
 export interface UpdateRuleDto {

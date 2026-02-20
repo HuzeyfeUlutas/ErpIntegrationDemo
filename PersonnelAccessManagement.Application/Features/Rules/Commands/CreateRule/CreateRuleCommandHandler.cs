@@ -1,4 +1,3 @@
-using AutoMapper;
 using DotNetCore.CAP;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -19,7 +18,7 @@ public sealed class CreateRuleCommandHandler : IRequestHandler<CreateRuleCommand
     private readonly ICapPublisher _capPublisher;
     private readonly ILogger<CreateRuleCommandHandler> _logger;
     private readonly ICorrelationIdAccessor _correlationIdAccessor;
-    
+
     public CreateRuleCommandHandler(
         IRepository<Rule> ruleRepository,
         IRepository<Role> roleRepository,
@@ -41,9 +40,9 @@ public sealed class CreateRuleCommandHandler : IRequestHandler<CreateRuleCommand
         var correlationId = _correlationIdAccessor.CorrelationId;
 
         _logger.LogInformation(
-            "Creating rule — Name: {Name}, Campus: {Campus}, Title: {Title}, CorrelationId: {CorrelationId}",
-            request.Name, request.Campus, request.Title, correlationId);
-        
+            "Creating rule — Name: {Name}, Campus: {Campus}, Title: {Title}, ApplyToExisting: {Apply}, CorrelationId: {CorrelationId}",
+            request.Name, request.Campus, request.Title, request.ApplyToExistingPersonnel, correlationId);
+
         // 1) Scope unique (Campus+Title)
         var exists = await _ruleRepository.Query()
             .AnyAsync(r => r.Campus == request.Campus && r.Title == request.Title && !r.IsDeleted, ct);
@@ -71,17 +70,25 @@ public sealed class CreateRuleCommandHandler : IRequestHandler<CreateRuleCommand
 
         await _uow.SaveChangesAsync(ct);
 
-        await _capPublisher.PublishAsync(CapTopics.RuleCreated, new RuleIntegrationEvent
+        // 4) CAP publish — sadece ApplyToExistingPersonnel true ise
+        if (request.ApplyToExistingPersonnel)
         {
-            RuleId = rule.Id,
-            CorrelationId = correlationId
-        }, cancellationToken: ct);
-        
+            await _capPublisher.PublishAsync(CapTopics.RuleCreated, new RuleIntegrationEvent
+            {
+                RuleId = rule.Id,
+                CorrelationId = correlationId
+            }, cancellationToken: ct);
+
+            _logger.LogInformation(
+                "CAP published RuleCreated — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+                rule.Id, correlationId);
+        }
+
         await _uow.CommitTransactionAsync(ct);
-        
+
         _logger.LogInformation(
-            "Rule created — Id: {RuleId}, CorrelationId: {CorrelationId}",
-            rule.Id, correlationId);
+            "Rule created — Id: {RuleId}, AppliedToExisting: {Applied}, CorrelationId: {CorrelationId}",
+            rule.Id, request.ApplyToExistingPersonnel, correlationId);
 
         return rule.Id;
     }

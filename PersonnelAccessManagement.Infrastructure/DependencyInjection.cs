@@ -2,8 +2,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Options;
+using PersonnelAccessManagement.Domain.Events;
 using PersonnelAccessManagement.Infrastructure.EventHandlers;
 using PersonnelAccessManagement.Infrastructure.Kafka;
+using PersonnelAccessManagement.Infrastructure.Kafka.Abstractions;
 using PersonnelAccessManagement.Infrastructure.Services;
 
 namespace PersonnelAccessManagement.Infrastructure;
@@ -67,9 +69,16 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         
+        services.AddSingleton<IKafkaMessageDeserializer<PersonnelLifecycleIntegrationEvent>, KafkaMessageDeserializer>();
+        services.AddSingleton<IKafkaEventLogger, KafkaEventLogger>();
+        services.AddSingleton<IKafkaCapBridge, KafkaCapBridge>();
+        
         services.AddHostedService<KafkaPersonnelConsumer>();
+        
+        
         services.AddTransient<HiredEventHandler>();
         services.AddTransient<TerminatedEventHandler>();
+        services.AddTransient<PositionChangedEventHandler>();
 
         return services;
     }

@@ -15,13 +15,13 @@ public sealed class PositionChangedEventHandler : ICapSubscribe
     }
 
     [CapSubscribe(CapTopics.PositionChanged)]
-    public Task HandleAsync(PersonnelLifecycleIntegrationEvent @event)
+    public async Task HandleAsync(PersonnelLifecycleIntegrationEvent @event)
     {
+        return;
         _logger.LogInformation(
             "CAP received POSITION CHANGED — EmployeeNo: {EmployeeNo}, EffectiveDate: {Date}, EventId: {EventId}",
             @event.EmployeeNo, @event.EffectiveDate, @event.EventId);
 
         // TODO: İleride scheduled action'a eklenebilir
-        return Task.CompletedTask;
     }
 }

@@ -23,6 +23,7 @@ interface RuleFormValues {
     title: string | null;
     isActive: boolean;
     roleIds: number[];
+    applyToExistingPersonnel: boolean;
 }
 
 const CAMPUS_OPTIONS_NULLABLE = [
@@ -45,14 +46,17 @@ export function RuleForm({ open, editingItem, onClose }: RuleFormProps) {
         [roles],
     );
 
+    const defaultValues: RuleFormValues = {
+        name: '',
+        campus: null,
+        title: null,
+        isActive: true,
+        roleIds: [],
+        applyToExistingPersonnel: false,
+    };
+
     const { control, handleSubmit, reset } = useForm<RuleFormValues>({
-        defaultValues: {
-            name: '',
-            campus: null,
-            title: null,
-            isActive: true,
-            roleIds: [],
-        },
+        defaultValues,
     });
 
     useEffect(() => {
@@ -71,12 +75,18 @@ export function RuleForm({ open, editingItem, onClose }: RuleFormProps) {
                 title: '',
                 isActive: true,
                 roleIds: [],
+                applyToExistingPersonnel: false,
             });
         }
     }, [editingItem, reset]);
 
-    const createMutation = useCreateRule(onClose);
-    const updateMutation = useUpdateRule(onClose);
+    const handleClose = () => {
+        reset(defaultValues);
+        onClose();
+    };
+
+    const createMutation = useCreateRule(handleClose);
+    const updateMutation = useUpdateRule(handleClose);
 
     const onSubmit = (values: RuleFormValues) => {
         const campus = values.campus || null;
@@ -98,10 +108,12 @@ export function RuleForm({ open, editingItem, onClose }: RuleFormProps) {
                 campus: campus as CreateRuleDto['campus'],
                 title: title as CreateRuleDto['title'],
                 roleIds: values.roleIds,
+                applyToExistingPersonnel: values.applyToExistingPersonnel,
             };
             createMutation.mutate(dto);
         }
     };
+
 
     return (
         <FormDrawer
@@ -160,6 +172,14 @@ export function RuleForm({ open, editingItem, onClose }: RuleFormProps) {
                         name="isActive"
                         control={control}
                         label="Aktif"
+                    />
+                )}
+
+                {!isEdit && (
+                    <RHFSwitch
+                        name="applyToExistingPersonnel"
+                        control={control}
+                        label="Mevcut personellere uygula"
                     />
                 )}
             </Form>

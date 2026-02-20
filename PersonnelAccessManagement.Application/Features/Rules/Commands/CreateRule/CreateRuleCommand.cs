@@ -7,5 +7,6 @@ public sealed record CreateRuleCommand(
     string Name,
     Campus? Campus,
     Title? Title,
-    List<decimal> RoleIds
+    List<decimal> RoleIds,
+    bool ApplyToExistingPersonnel = false
 ) : IRequest<Guid>;
