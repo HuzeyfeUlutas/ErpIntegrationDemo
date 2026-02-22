@@ -16,6 +16,7 @@ public class PersonnelAccessManagementDbContext: DbContext
     public DbSet<JobLog> JobLogs => Set<JobLog>();
     public DbSet<PersonnelScheduledAction> PersonnelScheduledActions => Set<PersonnelScheduledAction>();
     public DbSet<KafkaEventLog> KafkaEventLogs => Set<KafkaEventLog>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(PersonnelAccessManagementDbContext).Assembly);

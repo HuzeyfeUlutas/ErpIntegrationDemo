@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonnelAccessManagement.Infrastructure.Seeders;
 
@@ -7,6 +8,7 @@ namespace PersonnelAccessManagement.Api.Controllers;
 #if DEBUG
 [ApiController]
 [Route("api/seed")]
+[Authorize(Roles = "Admin")]
 public sealed class SeedController : ControllerBase
 {
     private readonly DataSeeder _seeder;

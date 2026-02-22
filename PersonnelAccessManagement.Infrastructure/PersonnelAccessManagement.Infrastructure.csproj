@@ -18,6 +18,10 @@
       <PackageReference Include="DotNetCore.CAP.Dashboard" Version="8.3.5" />
       <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="8.3.5" />
       <PackageReference Include="DotNetCore.CAP.RabbitMQ" Version="8.3.5" />
+      <PackageReference Include="Hangfire.AspNetCore" Version="1.8.23" />
+      <PackageReference Include="Hangfire.Core" Version="1.8.23" />
+      <PackageReference Include="Hangfire.PostgreSql" Version="1.21.1" />
+      <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.16.0" />
     </ItemGroup>
 
 </Project>

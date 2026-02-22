@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Persistence.DbContexts;
+using PersonnelAccessManagement.Persistence.Interceptors;
 using PersonnelAccessManagement.Persistence.Repositories;
 
 namespace PersonnelAccessManagement.Persistence;
@@ -11,7 +12,10 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddPersistence(this IServiceCollection services, IConfiguration configuration)
     {
-        services.AddDbContext<PersonnelAccessManagementDbContext>(options =>
+        
+        services.AddScoped<AuditableEntityInterceptor>();
+        
+        services.AddDbContext<PersonnelAccessManagementDbContext>((sp, options) =>  // ← sp eklendi
         {
             var cs = configuration.GetConnectionString("Default")
                      ?? throw new InvalidOperationException("ConnectionStrings:Default missing.");
@@ -21,14 +25,12 @@ public static class DependencyInjection
                 npgsql.MigrationsAssembly(typeof(PersonnelAccessManagementDbContext).Assembly.FullName);
             });
 
-            // Debug için (prod’da kapatılır)
-            // options.EnableSensitiveDataLogging();
-            // options.EnableDetailedErrors();
+            options.AddInterceptors(sp.GetRequiredService<AuditableEntityInterceptor>());  // ← interceptor
         });
         
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
         services.AddScoped<IUnitOfWork, EfUnitOfWork.EfUnitOfWork>();
-
+        
         return services;
     }
 }

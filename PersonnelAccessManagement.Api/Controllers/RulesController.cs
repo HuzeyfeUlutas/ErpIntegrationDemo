@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonnelAccessManagement.Application.Features.Rules.Commands.CreateRule;
 using PersonnelAccessManagement.Application.Features.Rules.Commands.DeleteRule;
@@ -10,6 +11,7 @@ namespace PersonnelAccessManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/rules")]
+[Authorize(Roles = "Admin")]
 public sealed class RulesController : ControllerBase
 {
     private readonly IMediator _mediator;

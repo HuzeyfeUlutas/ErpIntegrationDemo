@@ -1,16 +1,22 @@
-import type { LoginRequest, LoginResponse, AuthUser } from '@/api/types/auth.types';
-import { mockAuthApi } from '@/mocks/auth';
-// import axiosInstance from '@/api/axiosInstance';
+import type { LoginRequest, AuthResponse } from '@/api/types/auth.types';
+import axiosInstance from '@/api/axiosInstance';
 
-// Mock implementasyon - API hazır olduğunda axios ile değiştir
 export const authApi = {
-  login: (data: LoginRequest): Promise<LoginResponse> => {
-    return mockAuthApi.login(data);
-    // return axiosInstance.post<LoginResponse>('/auth/login', data).then(res => res.data);
+  login: (data: LoginRequest): Promise<AuthResponse> => {
+    return axiosInstance
+        .post<AuthResponse>('/auth/login', data)
+        .then((res) => res.data);
   },
 
-  me: (): Promise<AuthUser> => {
-    return mockAuthApi.me();
-    // return axiosInstance.get<AuthUser>('/auth/me').then(res => res.data);
+  refresh: (refreshToken: string): Promise<AuthResponse> => {
+    return axiosInstance
+        .post<AuthResponse>('/auth/refresh', { refreshToken })
+        .then((res) => res.data);
+  },
+
+  logout: (refreshToken: string): Promise<void> => {
+    return axiosInstance
+        .post('/auth/logout', { refreshToken })
+        .then(() => undefined);
   },
 };

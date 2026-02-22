@@ -1,9 +1,13 @@
+using Hangfire;
+using Hangfire.PostgreSql;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Options;
 using PersonnelAccessManagement.Domain.Events;
+using PersonnelAccessManagement.Infrastructure.Auth;
 using PersonnelAccessManagement.Infrastructure.EventHandlers;
+using PersonnelAccessManagement.Infrastructure.Jobs;
 using PersonnelAccessManagement.Infrastructure.Kafka;
 using PersonnelAccessManagement.Infrastructure.Kafka.Abstractions;
 using PersonnelAccessManagement.Infrastructure.Services;
@@ -14,6 +18,27 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
+        var connectionString = configuration.GetConnectionString("Default")
+                               ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
+
+        services.AddHangfire(config =>
+        {
+            config
+                .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+                .UseSimpleAssemblyNameTypeSerializer()
+                .UseRecommendedSerializerSettings()
+                .UsePostgreSqlStorage(options =>
+                {
+                    options.UseNpgsqlConnection(connectionString);
+                });
+        });
+
+        services.AddHangfireServer();
+
+        // Job + processor
+        services.AddScoped<IScheduledActionJob, DailyScheduledActionJob>();
+        services.AddScoped<IScheduledActionProcessor, ScheduledActionProcessor>();
+        
         var rabbitMqOptions = configuration
             .GetSection(RabbitMQOptions.SectionName)
             .Get<RabbitMQOptions>()!;
@@ -69,6 +94,16 @@ public static class DependencyInjection
             .ValidateDataAnnotations()
             .ValidateOnStart();
         
+        services.AddOptions<JwtOptions>()
+            .Bind(configuration.GetSection(JwtOptions.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        
+        services.AddOptions<AdminSettings>()
+            .Bind(configuration.GetSection(AdminSettings.SectionName))
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+        
         services.AddSingleton<IKafkaMessageDeserializer<PersonnelLifecycleIntegrationEvent>, KafkaMessageDeserializer>();
         services.AddSingleton<IKafkaEventLogger, KafkaEventLogger>();
         services.AddSingleton<IKafkaCapBridge, KafkaCapBridge>();
@@ -79,6 +114,9 @@ public static class DependencyInjection
         services.AddTransient<HiredEventHandler>();
         services.AddTransient<TerminatedEventHandler>();
         services.AddTransient<PositionChangedEventHandler>();
+        
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IPasswordVerifier, SimplePasswordVerifier>();
 
         return services;
     }

@@ -23,3 +23,11 @@ public sealed class ConflictException : AppException
     public override string Code => "conflict";
     public override int StatusCode => 409;
 }
+
+public sealed class UnauthorizedException : AppException
+{
+    public UnauthorizedException(string message) : base(message) { }
+
+    public override string Code => "unauthorized";
+    public override int StatusCode => 401;
+}

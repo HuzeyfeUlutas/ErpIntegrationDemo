@@ -1,12 +1,17 @@
+using System.Text;
 using Elastic.Ingest.Elasticsearch;
 using Elastic.Ingest.Elasticsearch.DataStreams;
 using Elastic.Serilog.Sinks;
+using Hangfire;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
 using PersonnelAccessManagement.Api.Middlewares;
 using PersonnelAccessManagement.Api.Observability;
 using PersonnelAccessManagement.Api.Services;
 using PersonnelAccessManagement.Application;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Infrastructure;
+using PersonnelAccessManagement.Infrastructure.Jobs;
 using PersonnelAccessManagement.Infrastructure.Seeders;
 using PersonnelAccessManagement.Persistence;
 using Serilog;
@@ -17,9 +22,14 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000") // Vite dev port
+        policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",    // Vite default port
+                "https://localhost:7051"
+            )
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 
@@ -72,10 +82,35 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICorrelationIdAccessor, HttpCorrelationIdAccessor>();
+builder.Services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
+
+var jwtSection = builder.Configuration.GetSection("Jwt");
+var secret = jwtSection["Secret"]
+             ?? throw new InvalidOperationException("Jwt:Secret is required.");
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(opts =>
+    {
+        opts.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtSection["Issuer"],
+            ValidAudience = jwtSection["Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret)),
+            ClockSkew = TimeSpan.Zero
+        };
+    });
+
+builder.Services.AddAuthorization();
 
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
+
+
 
 // Data Seed
 builder.Services.AddScoped<DataSeeder>();
@@ -95,8 +130,28 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-// If you don't have HTTPS configured locally, you can comment this out during dev.
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
+
+app.UseAuthentication();  
+app.UseAuthorization();
+
+app.UseHangfireDashboard("/hangfire", new DashboardOptions
+{
+    Authorization = new[] { new HangfireDashboardAuthFilter() },
+    DashboardTitle = "Personnel Access Management — Jobs"
+});
+
+RecurringJob.AddOrUpdate<IScheduledActionJob>(
+    recurringJobId: "daily-scheduled-action",
+    methodCall: job => job.ExecuteAsync(CancellationToken.None),
+    cronExpression: "0 9 * * *",  // Her gün 09:00
+    options: new RecurringJobOptions
+    {
+        TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time")
+    });
 
 // ---------- Endpoints ----------
 app.MapControllers();

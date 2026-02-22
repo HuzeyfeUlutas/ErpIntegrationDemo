@@ -12,23 +12,31 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (data: LoginRequest) => authApi.login(data),
     onSuccess: (response) => {
-      setAuth(response.token, response.user);
-      message.success(`Hoş geldiniz, ${response.user.name}!`);
+      setAuth(response);
+      message.success(`Hoş geldiniz, ${response.fullName}!`);
       navigate('/', { replace: true });
     },
-    onError: (error: Error) => {
-      message.error(error.message || 'Giriş başarısız');
+    onError: () => {
+      message.error('Sicil numarası veya şifre hatalı');
     },
   });
 };
 
 export const useLogout = () => {
   const navigate = useNavigate();
-  const logout = useAuthStore((s) => s.logout);
+  const { refreshToken, logout } = useAuthStore.getState();
 
-  return () => {
-    logout();
-    message.info('Çıkış yapıldı');
-    navigate('/login', { replace: true });
+  return async () => {
+    try {
+      if (refreshToken) {
+        await authApi.logout(refreshToken);
+      }
+    } catch {
+      // Logout API hatası olsa bile local state'i temizle
+    } finally {
+      logout();
+      message.info('Çıkış yapıldı');
+      navigate('/login', { replace: true });
+    }
   };
 };

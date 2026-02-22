@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonnelAccessManagement.Application.Features.Personnels.Commands.UpdatePersonnel;
 using PersonnelAccessManagement.Application.Features.Personnels.Dtos;
@@ -8,6 +9,7 @@ namespace PersonnelAccessManagement.Api.Controllers;
 
 [ApiController]
 [Route("api/personnels")]
+[Authorize(Roles = "Admin")]
 public sealed class PersonnelsController : ControllerBase
 {
     private readonly IMediator _mediator;
