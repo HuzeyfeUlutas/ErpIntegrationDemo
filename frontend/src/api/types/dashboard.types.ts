@@ -1,4 +1,5 @@
 import {EventDto} from "@/api/types/event.types.ts";
+import {JobDto} from "@/api/types/job.types.ts";
 
 export interface DashboardStats {
   totalPersonnel: number;
@@ -11,4 +12,5 @@ export interface DashboardStats {
 export interface DashboardDto {
   stats: DashboardStats;
   recentEvents: EventDto[];
+  recentJobs: JobDto[];
 }

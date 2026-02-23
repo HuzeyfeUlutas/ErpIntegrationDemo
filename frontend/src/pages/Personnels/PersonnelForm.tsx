@@ -30,10 +30,6 @@ export function PersonnelForm({ open, editingItem, onClose }: PersonnelFormProps
     });
 
     useEffect(() => {
-        console.log("roles", roles);
-    }, [roles]);
-
-    useEffect(() => {
         if (editingItem) {
             reset({
                 employeeNo: editingItem.employeeNo,

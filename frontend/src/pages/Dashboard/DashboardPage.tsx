@@ -9,6 +9,7 @@ import { useDashboard } from '@/hooks/queries/useDashboard';
 import { PageHeader } from '@/components/shared/PageHeader';
 import dayjs from 'dayjs';
 import {EventDto} from "@/api/types/event.types.ts";
+import {JobDto} from "@/api/types/job.types.ts";
 
 const eventTypeColorMap: Record<string, { color: string; label: string }> = {
   RuleApplied: { color: 'blue', label: 'Kural Uygulandı' },
@@ -17,11 +18,89 @@ const eventTypeColorMap: Record<string, { color: string; label: string }> = {
   Sync: { color: 'orange', label: 'Senkronizasyon' },
 };
 
+const jobStatusColorMap: Record<string, { color: string; label: string }> = {
+  Running: { color: 'processing', label: 'Çalışıyor' },
+  Done: { color: 'success', label: 'Tamamlandı' },
+  CompletedWithErrors: { color: 'warning', label: 'Kısmi Hata' },
+  Failed: { color: 'error', label: 'Başarısız' },
+};
+
+const getJobStatusTag = (status: string) => {
+  const config = jobStatusColorMap[status];
+  if (config) return <Tag color={config.color}>{config.label}</Tag>;
+  return <Tag color="default">{status}</Tag>;
+};
+
 const getEventTag = (type: string) => {
   const config = eventTypeColorMap[type];
   if (config) return <Tag color={config.color}>{config.label}</Tag>;
   return <Tag color="default">{type}</Tag>;
 };
+
+const jobColumns = [
+  {
+    title: '#',
+    key: 'index',
+    width: 50,
+    render: (_: unknown, __: unknown, index: number) => index + 1,
+  },
+  {
+    title: 'Tip',
+    dataIndex: 'jobType',
+    key: 'jobType',
+    width: 160,
+    render: (type: string) => <Tag color="purple">{type}</Tag>,
+  },
+  {
+    title: 'Durum',
+    dataIndex: 'status',
+    key: 'status',
+    width: 140,
+    render: (status: string) => getJobStatusTag(status),
+  },
+  {
+    title: 'Sonuç',
+    key: 'result',
+    width: 200,
+    render: (_: unknown, record: JobDto) => {
+      if (record.status === 'Running') {
+        return <Tag color="processing">Devam ediyor...</Tag>;
+      }
+      const total = record.totalCount || 1;
+      const percent = Math.round((record.successCount / total) * 100);
+      return (
+          <Space size={4}>
+            <Progress
+                type="circle"
+                size={28}
+                percent={percent}
+                strokeColor={percent === 100 ? '#52c41a' : '#faad14'}
+            />
+            <span style={{ fontSize: 12 }}>
+            {record.successCount}/{record.totalCount}
+          </span>
+            {record.failureCount > 0 && (
+                <Tag color="error" style={{ fontSize: 11 }}>{record.failureCount} hata</Tag>
+            )}
+          </Space>
+      );
+    },
+  },
+  {
+    title: 'Başlangıç',
+    dataIndex: 'createdAt',
+    key: 'createdAt',
+    width: 150,
+    render: (val: string) => dayjs(val).format('DD.MM.YYYY HH:mm'),
+  },
+  {
+    title: 'Bitiş',
+    dataIndex: 'updatedAt',
+    key: 'updatedAt',
+    width: 150,
+    render: (val: string | null) => val ? dayjs(val).format('DD.MM.YYYY HH:mm') : '-',
+  },
+];
 
 const eventColumns = [
   {
@@ -151,7 +230,7 @@ export function DashboardPage() {
           <Col xs={24} sm={12} lg={6}>
             <Card>
               <Statistic
-                  title="Tamamlanan Job"
+                  title="Toplam Job"
                   value={stats?.totalJobs ?? 0}
                   prefix={<CheckCircleOutlined />}
                   valueStyle={{ color: '#52c41a' }}
@@ -176,8 +255,8 @@ export function DashboardPage() {
 
         <Card title="Son Joblar">
           <Table
-              columns={eventColumns}
-              dataSource={data?.recentEvents ?? []}
+              columns={jobColumns}
+              dataSource={data?.recentJobs ?? []}
               rowKey="id"
               pagination={false}
               size="small"

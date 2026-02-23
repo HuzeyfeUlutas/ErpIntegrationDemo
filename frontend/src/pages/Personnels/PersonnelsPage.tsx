@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import { Table, Tag, Button, Space, Input, Select, Flex } from 'antd';
 import { EditOutlined, SearchOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/components/shared/PageHeader';
@@ -32,10 +32,6 @@ export function PersonnelsPage() {
 
     const { data, isLoading } = usePersonnels(filter);
 
-    useEffect(() => {
-        console.log(data);
-    },[data])
-
     // Drawer state
     const [drawerOpen, setDrawerOpen] = useState(false);
     const [editingItem, setEditingItem] = useState<PersonnelDto | null>(null);
@@ -62,7 +58,7 @@ export function PersonnelsPage() {
             title: 'Sicil No', dataIndex: 'employeeNo', key: 'employeeNo', width: 100,
         },
         {
-            title: 'Ad Soyad', dataIndex: 'fullName', key: 'fullName',
+            title: 'Ad Soyad', dataIndex: 'fullName', key: 'fullName', width: 200,
         },
         {
             title: 'Yerleşke', dataIndex: 'campus', key: 'campus', width: 120,
@@ -77,7 +73,7 @@ export function PersonnelsPage() {
             ),
         },
         {
-            title: 'Roller', dataIndex: 'roles', key: 'roles', width: 220,
+            title: 'Roller', dataIndex: 'roles', key: 'roles',
             render: (roles: PersonnelDto['roles']) => (
                 <Space size={[0, 4]} wrap>
                     {roles.map((role) => <Tag key={role.id} color="volcano">{role.name}</Tag>)}

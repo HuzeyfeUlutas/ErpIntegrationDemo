@@ -47,6 +47,7 @@ export function AppLayout() {
         collapsible
         collapsed={sidebarCollapsed}
         breakpoint="lg"
+        width={240}
         onBreakpoint={(broken) => {
           if (broken) toggleSidebar();
         }}
@@ -87,7 +88,7 @@ export function AppLayout() {
         />
       </Sider>
 
-      <Layout style={{ marginLeft: sidebarCollapsed ? 80 : 200, transition: 'all 0.2s' }}>
+      <Layout style={{ marginLeft: sidebarCollapsed ? 80 : 240, transition: 'all 0.2s' }}>
         <Header
           style={{
             padding: '0 24px',
@@ -120,7 +121,7 @@ export function AppLayout() {
               <Flex align="center" gap={8} style={{ cursor: 'pointer' }}>
                 <Avatar icon={<UserOutlined />} size="small" />
                 <Typography.Text style={{ color: isDark ? '#fff' : undefined }}>
-                  {user?.name ?? 'Kullanıcı'}
+                  {user?.fullName ?? 'Kullanıcı'}
                 </Typography.Text>
               </Flex>
             </Dropdown>

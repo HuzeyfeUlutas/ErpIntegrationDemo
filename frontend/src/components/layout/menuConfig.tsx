@@ -1,5 +1,6 @@
 import {
-    DashboardOutlined, SafetyCertificateOutlined,
+    CloudServerOutlined,
+    DashboardOutlined, RocketOutlined, SafetyCertificateOutlined, ThunderboltOutlined,
     UserOutlined,
 } from '@ant-design/icons';
 import type {MenuProps} from 'antd';
@@ -10,12 +11,16 @@ export const menuItems: MenuItem[] = [
     {
         key: '/',
         icon: <DashboardOutlined/>,
-        label: 'Dashboard',
+        label: 'Panel',
     },
     {
         key: '/personnels',
         icon: <UserOutlined/>,
-        label: 'Personnels',
+        label: 'Personeller',
     },
     {key: '/rules', icon: <SafetyCertificateOutlined/>, label: 'Kurallar'},
+    { key: '/kafka-events', icon: <CloudServerOutlined />, label: 'SAP Personel İşlemleri' },
+    { key: '/events', icon: <ThunderboltOutlined />, label: 'Events' },
+    { key: '/jobs', icon: <RocketOutlined />, label: 'Jobs' }
+
 ];

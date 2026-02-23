@@ -24,7 +24,6 @@ export function RHFMultiSelect<T extends FieldValues>({
                                                           required,
                                                           disabled,
                                                           loading,
-                                                          maxTagCount = 'responsive',
                                                           rules,
                                                       }: RHFMultiSelectProps<T>) {
     return (
@@ -48,9 +47,8 @@ export function RHFMultiSelect<T extends FieldValues>({
                         options={options}
                         disabled={disabled}
                         loading={loading}
-                        maxTagCount={maxTagCount}
                         allowClear
-                        style={{width: '100%'}}
+                        style={{ width: '100%' }}
                     />
                 </Form.Item>
             )}

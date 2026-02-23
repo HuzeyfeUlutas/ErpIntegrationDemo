@@ -1,9 +1,11 @@
 using System.Text;
+using System.Text.Json;
 using Elastic.Ingest.Elasticsearch;
 using Elastic.Ingest.Elasticsearch.DataStreams;
 using Elastic.Serilog.Sinks;
 using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using PersonnelAccessManagement.Api.Middlewares;
 using PersonnelAccessManagement.Api.Observability;
@@ -106,6 +108,49 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
+
+// ---------- Health Checks ----------
+var defaultCs = builder.Configuration.GetConnectionString("Default")
+                ?? throw new InvalidOperationException("ConnectionStrings:Default is required.");
+
+var rabbitMqConfig = builder.Configuration.GetSection("RabbitMQ");
+var rabbitHost = rabbitMqConfig["Host"] ?? throw new InvalidOperationException("RabbitMQ:Host is required.");
+var rabbitPort = rabbitMqConfig["Port"] ?? "5672";
+var rabbitUser = rabbitMqConfig["UserName"] ?? throw new InvalidOperationException("RabbitMQ:UserName is required.");
+var rabbitPass = rabbitMqConfig["Password"] ?? throw new InvalidOperationException("RabbitMQ:Password is required.");
+var rabbitVHost = rabbitMqConfig["VirtualHost"] ?? "/";
+
+var elasticUri = builder.Configuration["Elastic:Uris:0"]
+                 ?? throw new InvalidOperationException("Elastic:Uris:0 is required.");
+
+var kafkaBootstrap = builder.Configuration["Kafka:BootstrapServers"]
+                     ?? throw new InvalidOperationException("Kafka:BootstrapServers is required.");
+
+builder.Services.AddHealthChecks()
+    .AddNpgSql(
+        defaultCs,
+        name: "postgresql",
+        tags: new[] { "ready" })
+    .AddRabbitMQ(
+        sp => new RabbitMQ.Client.ConnectionFactory
+        {
+            HostName = rabbitHost,
+            Port = int.Parse(rabbitPort),
+            UserName = rabbitUser,
+            Password = rabbitPass,
+            VirtualHost = rabbitVHost
+        }.CreateConnectionAsync().GetAwaiter().GetResult(),
+        name: "rabbitmq",
+        tags: new[] { "ready" })
+    .AddUrlGroup(
+        new Uri($"{elasticUri}/_cluster/health"),
+        name: "elasticsearch",
+        tags: new[] { "ready" })
+    .AddKafka(
+        setup => { setup.BootstrapServers = kafkaBootstrap; },
+        name: "kafka",
+        tags: new[] { "ready" });
+
 builder.Services.AddApplication();
 builder.Services.AddPersistence(builder.Configuration);
 builder.Services.AddInfrastructure(builder.Configuration);
@@ -152,6 +197,31 @@ RecurringJob.AddOrUpdate<IScheduledActionJob>(
     {
         TimeZone = TimeZoneInfo.FindSystemTimeZoneById("Turkey Standard Time")
     });
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = _ => false
+});
+
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = check => check.Tags.Contains("ready"),
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+        var result = new
+        {
+            status = report.Status.ToString(),
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                error = e.Value.Exception?.Message
+            })
+        };
+        await context.Response.WriteAsync(JsonSerializer.Serialize(result));
+    }
+});
 
 // ---------- Endpoints ----------
 app.MapControllers();

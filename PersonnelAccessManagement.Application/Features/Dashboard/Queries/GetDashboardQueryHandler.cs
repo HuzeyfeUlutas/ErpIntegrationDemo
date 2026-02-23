@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Features.Dashboard.Dtos;
 using PersonnelAccessManagement.Application.Features.Events.Dtos;
+using PersonnelAccessManagement.Application.Features.Jobs.Dtos;
 using PersonnelAccessManagement.Domain.Entities;
 
 namespace PersonnelAccessManagement.Application.Features.Dashboard.Queries;
@@ -43,7 +44,7 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
 
         // Completed event = job tamamlandı sayısı
         var totalJobs = await _jobs.QueryAsNoTracking()
-            .CountAsync(e => e.Status == "Success", ct);
+            .CountAsync(e => !e.IsDeleted, ct);
 
         var stats = new DashboardStatsDto(
             totalPersonnel, totalRules, activeRules, totalEvents, totalJobs
@@ -63,10 +64,26 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
                 e.TotalCount,
                 e.SuccessCount,
                 e.FailCount,
-                e.IsCompleted
+                e.IsCompleted,
+                e.CreatedAt
+            ))
+            .ToListAsync(ct);
+        
+         var recentJobs = await _jobs.QueryAsNoTracking()
+            .OrderByDescending(j => j.CreatedAt)
+            .Take(20)
+            .Select(j => new JobDto(
+                j.Id,
+                j.JobType.ToString(),
+                j.Status,
+                j.TotalCount,
+                j.SuccessCount,
+                j.FailureCount,
+                j.CreatedAt,
+                j.UpdatedAt
             ))
             .ToListAsync(ct);
 
-        return new DashboardDto(stats, recentEvents);
+        return new DashboardDto(stats, recentEvents, recentJobs);
     }
 }

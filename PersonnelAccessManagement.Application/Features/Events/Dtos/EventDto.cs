@@ -10,5 +10,6 @@ public sealed record EventDto(
     int TotalCount,
     int SuccessCount,
     int FailCount,
-    bool IsCompleted
+    bool IsCompleted,
+    DateTime CreatedAt
 );
