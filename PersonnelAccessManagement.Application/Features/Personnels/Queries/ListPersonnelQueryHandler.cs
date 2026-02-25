@@ -1,10 +1,10 @@
-using AutoMapper;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using PersonnelAccessManagement.Application.Common.Extensions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Models;
 using PersonnelAccessManagement.Application.Features.Personnels.Dtos;
+using PersonnelAccessManagement.Application.Features.Roles.Dtos;
 using PersonnelAccessManagement.Domain.Entities;
 
 namespace PersonnelAccessManagement.Application.Features.Personnels.Queries;
@@ -13,12 +13,10 @@ public sealed class ListPersonnelQueryHandler
     : IRequestHandler<ListPersonnelQuery, PagedQueryResult<IEnumerable<PersonnelDto>>>
 {
     private readonly IRepository<Personnel> _personnels;
-    private readonly IMapper _mapper;
 
-    public ListPersonnelQueryHandler(IRepository<Personnel> personnels, IMapper mapper)
+    public ListPersonnelQueryHandler(IRepository<Personnel> personnels)
     {
         _personnels = personnels;
-        _mapper = mapper;
     }
 
     public async Task<PagedQueryResult<IEnumerable<PersonnelDto>>> Handle(ListPersonnelQuery request, CancellationToken ct)
@@ -46,7 +44,13 @@ public sealed class ListPersonnelQueryHandler
             .GetPaged(request.Filter)
             .ToListAsync(ct);
 
-        var dtos = _mapper.Map<List<PersonnelDto>>(entities);
+        var dtos = entities.Select(p => new PersonnelDto(
+            p.EmployeeNo,
+            p.FullName,
+            p.Campus,
+            p.Title,
+            p.Roles.Select(r => new RoleDto(r.Id, r.Name)).ToList()
+        )).ToList();
 
         return dtos.ToPagedQueryResult(request.Filter, rowCount);
     }

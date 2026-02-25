@@ -1,5 +1,3 @@
-// Controllers/EventsController.cs
-
 using ClosedXML.Excel;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -16,24 +14,21 @@ public sealed class EventsController : ControllerBase
 {
     private readonly IMediator _mediator;
     public EventsController(IMediator mediator) => _mediator = mediator;
-
-    // GET /api/events?PageIndex=1&PageSize=10&Search=...&EventType=...&IsCompleted=true
+    
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] EventFilter filter, CancellationToken ct)
     {
         var result = await _mediator.Send(new ListEventsQuery(filter), ct);
         return Ok(result);
     }
-
-    // GET /api/events/{id}/logs
+    
     [HttpGet("{id:guid}/logs")]
     public async Task<IActionResult> GetLogs([FromRoute] Guid id, CancellationToken ct)
     {
         var logs = await _mediator.Send(new GetEventLogsQuery(id), ct);
         return Ok(logs);
     }
-
-    // GET /api/events/{id}/logs/export
+    
     [HttpGet("{id:guid}/logs/export")]
     public async Task<IActionResult> ExportLogs([FromRoute] Guid id, CancellationToken ct)
     {
@@ -41,8 +36,7 @@ public sealed class EventsController : ControllerBase
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Event Logları");
-
-        // Başlıklar
+        
         var headers = new[] { "#", "Sicil No", "Personel Adı", "Rol ID", "Rol Adı", "İşlem", "Durum", "Hata", "Tarih" };
         for (var i = 0; i < headers.Length; i++)
         {
@@ -50,8 +44,7 @@ public sealed class EventsController : ControllerBase
             ws.Cell(1, i + 1).Style.Font.Bold = true;
             ws.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
         }
-
-        // Veriler
+        
         for (var r = 0; r < logs.Count; r++)
         {
             var log = logs[r];

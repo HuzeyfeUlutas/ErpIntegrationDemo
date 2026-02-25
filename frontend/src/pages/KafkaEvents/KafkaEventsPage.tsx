@@ -115,7 +115,6 @@ export function KafkaEventsPage() {
                         <div>
                             <div><b>Event ID:</b> {record.eventId ?? '-'}</div>
                             <div><b>Correlation ID:</b> {record.correlationId ?? '-'}</div>
-                            <div><b>Partition:</b> {record.partitionNo}</div>
                             <div><b>Message Key:</b> {record.messageKey ?? '-'}</div>
                             {record.errorStackTrace && (
                                 <div style={{ marginTop: 8 }}>

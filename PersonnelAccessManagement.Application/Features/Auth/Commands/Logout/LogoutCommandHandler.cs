@@ -27,8 +27,7 @@ public sealed class LogoutCommandHandler : IRequestHandler<LogoutCommand>
             .FirstOrDefaultAsync(x => x.Token == request.RefreshToken, ct);
 
         if (token is null) return;
-
-        // Bu kullanıcının tüm aktif refresh token'larını revoke et
+        
         var allTokens = await _refreshTokenRepo.Query()
             .Where(x => x.EmployeeNo == token.EmployeeNo && x.RevokedAtUtc == null)
             .ToListAsync(ct);

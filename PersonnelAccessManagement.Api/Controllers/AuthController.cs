@@ -2,6 +2,7 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PersonnelAccessManagement.Application.Features.Auth.Commands;
+using PersonnelAccessManagement.Application.Features.Auth.Commands.Login;
 using PersonnelAccessManagement.Application.Features.Auth.Commands.Logout;
 using PersonnelAccessManagement.Application.Features.Auth.Commands.RefreshToken;
 
@@ -13,10 +14,7 @@ public sealed class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
     public AuthController(IMediator mediator) => _mediator = mediator;
-
-    /// <summary>
-    /// EmployeeNo + Password ile giriş yap, Access + Refresh token al.
-    /// </summary>
+    
     [HttpPost("login")]
     [AllowAnonymous]
     public async Task<IActionResult> Login([FromBody] LoginCommand cmd, CancellationToken ct)
@@ -24,10 +22,7 @@ public sealed class AuthController : ControllerBase
         var result = await _mediator.Send(cmd, ct);
         return Ok(result);
     }
-
-    /// <summary>
-    /// Refresh token ile yeni Access + Refresh token al.
-    /// </summary>
+    
     [HttpPost("refresh")]
     [AllowAnonymous]
     public async Task<IActionResult> Refresh([FromBody] RefreshTokenCommand cmd, CancellationToken ct)
@@ -35,10 +30,7 @@ public sealed class AuthController : ControllerBase
         var result = await _mediator.Send(cmd, ct);
         return Ok(result);
     }
-
-    /// <summary>
-    /// Çıkış yap — tüm refresh token'ları revoke et.
-    /// </summary>
+    
     [HttpPost("logout")]
     [Authorize]
     public async Task<IActionResult> Logout([FromBody] LogoutCommand cmd, CancellationToken ct)

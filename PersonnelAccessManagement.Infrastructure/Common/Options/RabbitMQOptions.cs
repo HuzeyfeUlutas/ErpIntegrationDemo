@@ -1,6 +1,6 @@
-namespace PersonnelAccessManagement.Application.Common.Options;
+namespace PersonnelAccessManagement.Infrastructure.Common.Options;
 
-public class RabbitMQOptions
+public class RabbitMqOptions
 {
     public const string SectionName = "RabbitMQ";
     public string Host { get; set; } = "localhost";

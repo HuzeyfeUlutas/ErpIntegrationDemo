@@ -8,7 +8,7 @@ public sealed class KafkaEventLogConfiguration : IEntityTypeConfiguration<KafkaE
 {
     public void Configure(EntityTypeBuilder<KafkaEventLog> builder)
     {
-        builder.ToTable("kafka_event_logs");
+        builder.ToTable("KafkaEventLogs");
 
         builder.HasKey(x => x.Id);
 

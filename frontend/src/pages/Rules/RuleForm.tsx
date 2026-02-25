@@ -167,14 +167,6 @@ export function RuleForm({ open, editingItem, onClose }: RuleFormProps) {
                     required
                 />
 
-                {isEdit && (
-                    <RHFSwitch
-                        name="isActive"
-                        control={control}
-                        label="Aktif"
-                    />
-                )}
-
                 {!isEdit && (
                     <RHFSwitch
                         name="applyToExistingPersonnel"

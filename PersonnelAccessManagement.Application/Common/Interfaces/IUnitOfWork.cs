@@ -2,7 +2,7 @@ using DotNetCore.CAP;
 
 namespace PersonnelAccessManagement.Application.Common.Interfaces;
 
-public interface IUnitOfWork : IDisposable
+public interface IUnitOfWork : IDisposable, IAsyncDisposable
 {
     Task<int> SaveChangesAsync(CancellationToken ct = default);
 

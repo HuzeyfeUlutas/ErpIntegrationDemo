@@ -21,6 +21,6 @@ export const menuItems: MenuItem[] = [
     {key: '/rules', icon: <SafetyCertificateOutlined/>, label: 'Kurallar'},
     { key: '/kafka-events', icon: <CloudServerOutlined />, label: 'SAP Personel İşlemleri' },
     { key: '/events', icon: <ThunderboltOutlined />, label: 'Events' },
-    { key: '/jobs', icon: <RocketOutlined />, label: 'Jobs' }
+    { key: '/jobs', icon: <RocketOutlined />, label: 'Scheduled Jobs' }
 
 ];

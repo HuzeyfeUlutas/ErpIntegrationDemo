@@ -40,13 +40,14 @@ public sealed class DeleteRuleCommandHandler : IRequestHandler<DeleteRuleCommand
             .FirstOrDefaultAsync(r => r.Id == request.Id && !r.IsDeleted, ct);
 
         if (rule is null)
-            throw new NotFoundException($"Rule not found: {request.Id}");
+            throw new NotFoundException($"Kural bulunamadı: {request.Id}");
 
         rule.SoftDelete();
         
+        using var transaction = await _uow.BeginTransactionAsync(_capPublisher, ct);
+        
         await _uow.SaveChangesAsync(ct);
-
-        // Soft-delete sonrası publish — PersonnelRoleService kuralı hâlâ okuyabilir
+        
         await _capPublisher.PublishAsync(
             CapTopics.RuleDeleted,
             new RuleIntegrationEvent
@@ -55,5 +56,7 @@ public sealed class DeleteRuleCommandHandler : IRequestHandler<DeleteRuleCommand
                 RuleId = rule.Id
             },
             cancellationToken: ct);
+        
+        await _uow.CommitTransactionAsync(ct);
     }
 }

@@ -40,7 +40,6 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResp
 
     public async Task<AuthResponse> Handle(LoginCommand request, CancellationToken ct)
     {
-        // 1) Personeli bul
         var personnel = await _personnelRepo.QueryAsNoTracking()
             .Include(p => p.Roles)
             .FirstOrDefaultAsync(p => p.EmployeeNo == decimal.Parse(request.EmployeeNo), ct);
@@ -56,29 +55,25 @@ public sealed class LoginCommandHandler : IRequestHandler<LoginCommand, AuthResp
             _logger.LogWarning("Login failed — EmployeeNo {EmployeeNo} is soft-deleted.", request.EmployeeNo);
             throw new UnauthorizedException("Geçersiz kullanıcı adı veya şifre.");
         }
-
-        // 2) Şifre doğrula
+        
         var valid = await _passwordVerifier.VerifyAsync(request.EmployeeNo, request.Password, ct);
         if (!valid)
         {
             _logger.LogWarning("Login failed — invalid password for {EmployeeNo}.", request.EmployeeNo);
             throw new UnauthorizedException("Geçersiz kullanıcı adı veya şifre.");
         }
-
-        // 3) Eski refresh token'ları revoke et
+        
         var existingTokens = await _refreshTokenRepo.Query()
             .Where(x => x.EmployeeNo == request.EmployeeNo && x.RevokedAtUtc == null)
             .ToListAsync(ct);
 
         foreach (var old in existingTokens)
             old.Revoke();
-
-        // 4) Yeni refresh token oluştur
+        
         var refreshToken = new Domain.Entities.RefreshToken(request.EmployeeNo, _jwtOptions.RefreshTokenExpirationDays);
         await _refreshTokenRepo.AddAsync(refreshToken, ct);
         await _uow.SaveChangesAsync(ct);
-
-        // 5) Access token üret
+        
         var accessToken = _tokenGenerator.GenerateToken(personnel);
 
         _logger.LogInformation("Login successful — EmployeeNo: {EmployeeNo}", request.EmployeeNo);

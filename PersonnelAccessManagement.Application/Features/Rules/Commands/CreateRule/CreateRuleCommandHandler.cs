@@ -42,35 +42,31 @@ public sealed class CreateRuleCommandHandler : IRequestHandler<CreateRuleCommand
         _logger.LogInformation(
             "Creating rule — Name: {Name}, Campus: {Campus}, Title: {Title}, ApplyToExisting: {Apply}, CorrelationId: {CorrelationId}",
             request.Name, request.Campus, request.Title, request.ApplyToExistingPersonnel, correlationId);
-
-        // 1) Scope unique (Campus+Title)
+        
         var exists = await _ruleRepository.Query()
             .AnyAsync(r => r.Campus == request.Campus && r.Title == request.Title && !r.IsDeleted, ct);
 
         if (exists)
-            throw new ConflictException("A rule with the same campus/title scope already exists.");
-
-        // 2) Role check
+            throw new ConflictException("Aynı kampüs ve unvan kapsamında zaten bir kural mevcut.");
+        
         var roles = await _roleRepository.Query()
             .Where(r => request.RoleIds.Contains(r.Id))
             .ToListAsync(ct);
 
         if (roles.Count != request.RoleIds.Count)
-            throw new NotFoundException("One or more roles were not found.");
-
-        // 3) Create
+            throw new NotFoundException("Bir veya daha fazla rol bulunamadı.");
+        
         var rule = new Rule(request.Name, request.Campus, request.Title);
 
         foreach (var role in roles)
             rule.AddRole(role);
-
-        await _ruleRepository.AddAsync(rule, ct);
-
+        
         using var transaction = await _uow.BeginTransactionAsync(_capPublisher, ct);
 
+        await _ruleRepository.AddAsync(rule, ct);
+        
         await _uow.SaveChangesAsync(ct);
-
-        // 4) CAP publish — sadece ApplyToExistingPersonnel true ise
+        
         if (request.ApplyToExistingPersonnel)
         {
             await _capPublisher.PublishAsync(CapTopics.RuleCreated, new RuleIntegrationEvent

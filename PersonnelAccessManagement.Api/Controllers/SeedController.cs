@@ -13,8 +13,7 @@ public sealed class SeedController : ControllerBase
 {
     private readonly DataSeeder _seeder;
     public SeedController(DataSeeder seeder) => _seeder = seeder;
-
-    // POST /api/seed
+    
     [HttpPost]
     public async Task<IActionResult> Seed(CancellationToken ct)
     {

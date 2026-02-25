@@ -1,3 +1,4 @@
+using Middleware.Contracts.Enums;
 using Middleware.Contracts.Events;
 using Middleware.Contracts.Sap;
 using MiddlewareApplication.Abstractions;
@@ -8,11 +9,16 @@ public sealed class SapEventIngestionHandler
 {
     private readonly IProcessedRequestsStore _store;
     private readonly IEventPublisher _publisher;
+    private readonly IPersonnelDbUpdater _dbUpdater;
 
-    public SapEventIngestionHandler(IProcessedRequestsStore store, IEventPublisher publisher)
+    public SapEventIngestionHandler(
+        IProcessedRequestsStore store,
+        IEventPublisher publisher,
+        IPersonnelDbUpdater dbUpdater)
     {
         _store = store;
         _publisher = publisher;
+        _dbUpdater = dbUpdater;
     }
 
     public async Task<IngestionResult> HandleAsync(
@@ -26,12 +32,19 @@ public sealed class SapEventIngestionHandler
 
         if (string.IsNullOrWhiteSpace(correlationId))
             correlationId = requestId;
-
-        // Idempotency check
+        
         if (await _store.IsProcessedAsync(requestId, ct))
             return IngestionResult.Deduplicated(requestId, correlationId);
+        
+        if (request.EventType == PersonnelEventType.PositionChanged)
+        {
+            var updateResult = await _dbUpdater.UpdatePositionAsync(request.EmployeeNo, ct);
 
-        // Minimal mapping to canonical event
+            if (!updateResult.Success)
+                return IngestionResult.Rejected(
+                    $"Position update failed for {request.EmployeeNo}: {updateResult.Error}");
+        }
+        
         var evt = new PersonnelLifecycleEvent(
             EventId: Guid.NewGuid(),
             EventType: request.EventType,
@@ -42,8 +55,7 @@ public sealed class SapEventIngestionHandler
         );
 
         await _publisher.PublishAsync(evt, ct);
-
-        // Mark processed AFTER publish succeeds
+        
         await _store.MarkProcessedAsync(requestId, ct);
 
         return IngestionResult.Accepted(requestId, correlationId, evt.EventId);
@@ -51,7 +63,7 @@ public sealed class SapEventIngestionHandler
 }
 
 public sealed record IngestionResult(
-    string Status,            // "accepted" | "deduplicated" | "rejected"
+    string Status,          
     string RequestId,
     string CorrelationId,
     Guid? EventId,

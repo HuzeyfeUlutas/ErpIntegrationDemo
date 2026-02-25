@@ -1,14 +1,13 @@
 import { useState } from 'react';
-import { Table, Tag, Button, Input, Select, Flex, Spin } from 'antd';
-import {SearchOutlined, FileExcelOutlined} from '@ant-design/icons';
+import { Table, Tag, Button, Input, Select, Flex } from 'antd';
+import { SearchOutlined, FileExcelOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { useJobs, useJobLogs } from '@/hooks/queries/useJobs';
+import { useJobs } from '@/hooks/queries/useJobs';
 import { jobApi } from '@/api/endpoints/jobs';
 import {
     JOB_STATUS_LABEL,
     JOB_STATUS_OPTIONS,
     JOB_TYPE_LABEL,
-    JOB_LOG_STATUS_LABEL,
 } from '@/api/types/job.types';
 import type { JobDto, JobFilter } from '@/api/types/job.types';
 import dayjs from 'dayjs';
@@ -19,62 +18,6 @@ const statusColorMap: Record<string, string> = {
     CompletedWithErrors: 'warning',
     Failed: 'error',
 };
-
-const logStatusColorMap: Record<string, string> = {
-    INFO: 'blue',
-    SUCCESS: 'success',
-    WARNING: 'warning',
-    ERROR: 'error',
-    FATAL: 'magenta',
-};
-
-function JobLogTable({ jobId }: { jobId: string }) {
-    const { data: logs, isLoading } = useJobLogs(jobId);
-
-    if (isLoading) return <Spin size="small" />;
-
-    const columns = [
-        {
-            title: '#',
-            key: 'index',
-            width: 50,
-            render: (_: unknown, __: unknown, i: number) => i + 1,
-        },
-        {
-            title: 'Mesaj',
-            dataIndex: 'message',
-            key: 'message',
-        },
-        {
-            title: 'Durum',
-            dataIndex: 'status',
-            key: 'status',
-            width: 120,
-            render: (val: string) => (
-                <Tag color={logStatusColorMap[val] ?? 'default'}>
-                    {JOB_LOG_STATUS_LABEL[val] ?? val}
-                </Tag>
-            ),
-        },
-        {
-            title: 'Tarih',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            width: 160,
-            render: (val: string) => dayjs(val).format('DD.MM.YYYY HH:mm:ss'),
-        },
-    ];
-
-    return (
-        <Table
-            columns={columns}
-            dataSource={logs ?? []}
-            rowKey="id"
-            pagination={false}
-            size="small"
-        />
-    );
-}
 
 export function JobsPage() {
     const [filter, setFilter] = useState<JobFilter>({
@@ -178,7 +121,7 @@ export function JobsPage() {
 
     return (
         <>
-            <PageHeader title="Görevler (Jobs)" />
+            <PageHeader title="Zamanlanmış İşler (Jobs)" />
 
             <Flex gap={12} wrap="wrap" style={{ marginBottom: 16 }}>
                 <Input
@@ -214,9 +157,6 @@ export function JobsPage() {
                 dataSource={data?.result ?? []}
                 rowKey="id"
                 loading={isLoading}
-                expandable={{
-                    expandedRowRender: (record) => <JobLogTable jobId={record.id} />,
-                }}
                 pagination={{
                     current: filter.pageIndex,
                     pageSize: filter.pageSize,

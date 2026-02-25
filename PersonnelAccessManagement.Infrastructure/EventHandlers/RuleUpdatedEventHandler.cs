@@ -26,7 +26,17 @@ public sealed class RuleUpdatedEventHandler : ICapSubscribe
             "RuleUpdated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
             @event.RuleId, @event.CorrelationId);
 
-        await _roleService.ApplyUpdatedRuleToMatchingPersonnelAsync(
-            @event.RuleId, @event.CorrelationId);
+        try
+        {
+            await _roleService.ApplyUpdatedRuleToMatchingPersonnelAsync(
+                @event.RuleId, @event.CorrelationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "RuleUpdated processing failed — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+                @event.RuleId, @event.CorrelationId);
+            throw;
+        }
     }
 }

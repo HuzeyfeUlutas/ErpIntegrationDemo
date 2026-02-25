@@ -25,8 +25,7 @@ public sealed class ExceptionHandlingMiddleware
                 Log.Warning(ex, "Response already started. path={Path}", ctx.Request.Path);
                 throw;
             }
-
-            // correlation id
+            
             var header = ObservabilityConstants.CorrelationHeader;
             var cid = ctx.Items[header] as string;
 
@@ -34,20 +33,18 @@ public sealed class ExceptionHandlingMiddleware
                 cid = ctx.Request.Headers[header].FirstOrDefault();
 
             if (string.IsNullOrWhiteSpace(cid))
-                cid = ctx.TraceIdentifier; // fallback
-
-            // client cancelled
+                cid = ctx.TraceIdentifier;
+            
             if (ex is OperationCanceledException && ctx.RequestAborted.IsCancellationRequested)
             {
                 Log.Information("Request cancelled by client. trace.id={TraceId} path={Path}", cid, ctx.Request.Path);
-                return; // response yazma
+                return;
             }
 
             ctx.Response.ContentType = "application/problem+json";
 
             if (ex is ValidationException vex)
             {
-                // 400 veya 422 seçebilirsin; ben 400 bırakıyorum
                 ctx.Response.StatusCode = StatusCodes.Status400BadRequest;
 
                 var errors = vex.Errors

@@ -2,17 +2,8 @@ using PersonnelAccessManagement.Domain.Enums;
 
 namespace PersonnelAccessManagement.Application.Common.Interfaces;
 
-/// <summary>
-/// Bir kural silindiğinde/güncellendiğinde, hangi (campus, title) gruplarından
-/// hangi rollerin kaldırılacağını hesaplar.
-/// Personel tablosuna dokunmaz — sadece kural bazlı in-memory hesaplama yapar.
-/// </summary>
 public interface IRoleReconciliationEngine
 {
-    /// <summary>
-    /// Etki alanındaki aktif kuralları yükler + DB'deki gerçek personel gruplarını çeker
-    /// + in-memory plan oluşturur.
-    /// </summary>
     Task<ReconciliationPlan> BuildPlanAsync(
         Campus? affectedCampus,
         Title? affectedTitle,

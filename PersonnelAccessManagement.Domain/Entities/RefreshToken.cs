@@ -7,10 +7,6 @@ public sealed class RefreshToken
     public string EmployeeNo { get; set; } = default!;
     public DateTime ExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
-
-    /// <summary>
-    /// Revoke edildiğinde doldurulur (logout, şifre değişikliği vb.)
-    /// </summary>
     public DateTime? RevokedAtUtc { get; set; }
 
     public bool IsExpired => DateTime.UtcNow >= ExpiresAtUtc;
@@ -25,7 +21,6 @@ public sealed class RefreshToken
         Token = GenerateToken();
         EmployeeNo = employeeNo;
         ExpiresAtUtc = DateTime.UtcNow.AddDays(expirationDays);
-        CreatedAtUtc = DateTime.UtcNow;
     }
 
     public void Revoke()

@@ -29,7 +29,6 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
 
     public async Task<DashboardDto> Handle(GetDashboardQuery request, CancellationToken ct)
     {
-        // Stats
         var totalPersonnel = await _personnels.QueryAsNoTracking()
             .CountAsync(p => !p.IsDeleted, ct);
 
@@ -41,16 +40,14 @@ public sealed class GetDashboardQueryHandler : IRequestHandler<GetDashboardQuery
 
         var totalEvents = await _events.QueryAsNoTracking()
             .CountAsync(ct);
-
-        // Completed event = job tamamlandı sayısı
+        
         var totalJobs = await _jobs.QueryAsNoTracking()
             .CountAsync(e => !e.IsDeleted, ct);
 
         var stats = new DashboardStatsDto(
             totalPersonnel, totalRules, activeRules, totalEvents, totalJobs
         );
-
-        // Son 20 event
+        
         var recentEvents = await _events.QueryAsNoTracking()
             .OrderByDescending(e => e.OccurredAt)
             .Take(20)

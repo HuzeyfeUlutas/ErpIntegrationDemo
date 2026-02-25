@@ -6,6 +6,7 @@ using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Options;
 using PersonnelAccessManagement.Domain.Events;
 using PersonnelAccessManagement.Infrastructure.Auth;
+using PersonnelAccessManagement.Infrastructure.Common.Options;
 using PersonnelAccessManagement.Infrastructure.EventHandlers;
 using PersonnelAccessManagement.Infrastructure.Jobs;
 using PersonnelAccessManagement.Infrastructure.Kafka;
@@ -40,8 +41,8 @@ public static class DependencyInjection
         services.AddScoped<IScheduledActionProcessor, ScheduledActionProcessor>();
         
         var rabbitMqOptions = configuration
-            .GetSection(RabbitMQOptions.SectionName)
-            .Get<RabbitMQOptions>()!;
+            .GetSection(RabbitMqOptions.SectionName)
+            .Get<RabbitMqOptions>()!;
 
         services.AddCap(cap =>
         {

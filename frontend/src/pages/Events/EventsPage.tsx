@@ -1,10 +1,10 @@
 // src/pages/Events/EventsPage.tsx
 
 import { useState } from 'react';
-import { Table, Tag, Button, Input, Select, Flex, Space, Progress, Spin } from 'antd';
-import {SearchOutlined, FileExcelOutlined} from '@ant-design/icons';
+import { Table, Tag, Button, Select, Flex, Space, Progress } from 'antd';
+import {  FileExcelOutlined } from '@ant-design/icons';
 import { PageHeader } from '@/components/shared/PageHeader';
-import { useEvents, useEventLogs } from '@/hooks/queries/useEvents';
+import { useEvents } from '@/hooks/queries/useEvents';
 import { eventApi } from '@/api/endpoints/events';
 import { EVENT_TYPE_LABEL, EVENT_TYPE_OPTIONS, COMPLETED_OPTIONS } from '@/api/types/event.types';
 import type { EventDto, EventFilter } from '@/api/types/event.types';
@@ -16,78 +16,6 @@ const eventTypeColorMap: Record<string, string> = {
     RoleRevoked: 'red',
     Sync: 'orange',
 };
-
-function EventLogTable({ eventId }: { eventId: string }) {
-    const { data: logs, isLoading } = useEventLogs(eventId);
-
-    if (isLoading) return <Spin size="small" />;
-
-    const columns = [
-        {
-            title: '#',
-            key: 'index',
-            width: 50,
-            render: (_: unknown, __: unknown, i: number) => i + 1,
-        },
-        {
-            title: 'Sicil No',
-            dataIndex: 'employeeNo',
-            key: 'employeeNo',
-            width: 90,
-        },
-        {
-            title: 'Personel Adı',
-            dataIndex: 'personnelName',
-            key: 'personnelName',
-        },
-        {
-            title: 'Rol',
-            dataIndex: 'roleName',
-            key: 'roleName',
-        },
-        {
-            title: 'İşlem',
-            dataIndex: 'action',
-            key: 'action',
-            width: 120,
-        },
-        {
-            title: 'Durum',
-            dataIndex: 'status',
-            key: 'status',
-            width: 100,
-            render: (val: string) => (
-                <Tag color={val === 'Success' ? 'success' : 'error'}>
-                    {val === 'Success' ? 'Başarılı' : 'Başarısız'}
-                </Tag>
-            ),
-        },
-        {
-            title: 'Hata',
-            dataIndex: 'error',
-            key: 'error',
-            ellipsis: true,
-            render: (val: string | null) => val ?? '-',
-        },
-        {
-            title: 'Tarih',
-            dataIndex: 'createdAt',
-            key: 'createdAt',
-            width: 140,
-            render: (val: string) => dayjs(val).format('DD.MM.YYYY HH:mm'),
-        },
-    ];
-
-    return (
-        <Table
-            columns={columns}
-            dataSource={logs ?? []}
-            rowKey="id"
-            pagination={false}
-            size="small"
-        />
-    );
-}
 
 export function EventsPage() {
     const [filter, setFilter] = useState<EventFilter>({
@@ -119,7 +47,7 @@ export function EventsPage() {
             title: 'Olay Tipi',
             dataIndex: 'eventType',
             key: 'eventType',
-            width: 160,
+            width: 100,
             render: (val: string) => {
                 const label = EVENT_TYPE_LABEL[val] ?? val;
                 const color = eventTypeColorMap[val] ?? 'default';
@@ -127,17 +55,10 @@ export function EventsPage() {
             },
         },
         {
-            title: 'Kaynak',
+            title: 'Kural Id',
             dataIndex: 'sourceId',
             key: 'sourceId',
-            width: 140,
-        },
-        {
-            title: 'Detay',
-            dataIndex: 'sourceDetail',
-            key: 'sourceDetail',
-            ellipsis: true,
-            render: (val: string | null) => val ?? '-',
+            width: 200,
         },
         {
             title: 'Sonuç',
@@ -152,8 +73,8 @@ export function EventsPage() {
                         <Progress type="circle" size={26} percent={percent}
                                   strokeColor={percent === 100 ? '#52c41a' : '#faad14'} />
                         <span style={{ fontSize: 12 }}>
-              {record.successCount}/{record.totalCount}
-            </span>
+                            {record.successCount}/{record.totalCount}
+                        </span>
                         {record.failCount > 0 && (
                             <Tag color="error" style={{ fontSize: 11 }}>{record.failCount} hata</Tag>
                         )}
@@ -198,23 +119,6 @@ export function EventsPage() {
             <PageHeader title="Olaylar (Events)" />
 
             <Flex gap={12} wrap="wrap" style={{ marginBottom: 16 }}>
-                <Input
-                    placeholder="Kaynak veya Correlation ID..."
-                    prefix={<SearchOutlined />}
-                    allowClear
-                    style={{ width: 260 }}
-                    onPressEnter={(e) =>
-                        setFilter((prev) => ({
-                            ...prev,
-                            pageIndex: 1,
-                            search: (e.target as HTMLInputElement).value || undefined,
-                        }))
-                    }
-                    onChange={(e) => {
-                        if (!e.target.value)
-                            setFilter((prev) => ({ ...prev, pageIndex: 1, search: undefined }));
-                    }}
-                />
                 <Select
                     placeholder="Olay Tipi"
                     allowClear
@@ -240,9 +144,6 @@ export function EventsPage() {
                 dataSource={data?.result ?? []}
                 rowKey="id"
                 loading={isLoading}
-                expandable={{
-                    expandedRowRender: (record) => <EventLogTable eventId={record.id} />,
-                }}
                 pagination={{
                     current: filter.pageIndex,
                     pageSize: filter.pageSize,

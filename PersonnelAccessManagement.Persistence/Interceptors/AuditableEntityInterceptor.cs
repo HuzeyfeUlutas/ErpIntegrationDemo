@@ -35,18 +35,23 @@ public sealed class AuditableEntityInterceptor : SaveChangesInterceptor
         var employeeNo = _currentUser.EmployeeNo;
         var now = DateTime.UtcNow;
 
-        foreach (var entry in context.ChangeTracker.Entries<AuditableEntity<Guid>>())
+        foreach (var entry in context.ChangeTracker.Entries())
         {
+            var entityType = entry.Entity.GetType().BaseType;
+        
+            if (entityType is null || !entityType.IsGenericType || 
+                entityType.GetGenericTypeDefinition() != typeof(AuditableEntity<>))
+                continue;
+
             switch (entry.State)
             {
                 case EntityState.Added:
-                    entry.Entity.CreatedAt = now;
-                    entry.Entity.CreatedBy = employeeNo;
+                    entry.Property("CreatedAt").CurrentValue = now;
+                    entry.Property("CreatedBy").CurrentValue = employeeNo ?? "System";
                     break;
-
                 case EntityState.Modified:
-                    entry.Entity.UpdatedAt = now;
-                    entry.Entity.UpdatedBy = employeeNo;
+                    entry.Property("UpdatedAt").CurrentValue = now;
+                    entry.Property("UpdatedBy").CurrentValue = employeeNo ?? "System";
                     break;
             }
         }

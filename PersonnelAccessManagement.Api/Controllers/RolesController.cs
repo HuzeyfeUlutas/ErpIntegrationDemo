@@ -13,8 +13,7 @@ public sealed class RolesController : ControllerBase
 {
     private readonly IMediator _mediator;
     public RolesController(IMediator mediator) => _mediator = mediator;
-
-    // GET /api/roles?PageIndex=1&PageSize=100&Name=...
+    
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] RoleFilter filter, CancellationToken ct)
     {

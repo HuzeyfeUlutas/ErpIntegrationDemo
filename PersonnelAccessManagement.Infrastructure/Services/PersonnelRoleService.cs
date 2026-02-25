@@ -11,17 +11,6 @@ using PersonnelAccessManagement.Domain.Enums;
 
 namespace PersonnelAccessManagement.Infrastructure.Services;
 
-/// <summary>
-/// Kural değişikliklerini personel rollerine uygulayan orkestratör.
-///
-/// Sorumluluklar:
-///   - Event oluşturma / tamamlama
-///   - Reconciliation engine'den plan alma
-///   - Batch processor'a iş gönderme
-///
-/// Reconciliation hesaplaması → IRoleReconciliationEngine
-/// Tekil personel işleme      → IPersonnelRoleBatchProcessor
-/// </summary>
 public sealed class PersonnelRoleService : IPersonnelRoleService
 {
     private const int BatchSize = 200;
@@ -43,10 +32,6 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
         _logger = logger;
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  CREATED
-    // ═══════════════════════════════════════════════════════════════
-
     public async Task ApplyCreatedRuleToMatchingPersonnelAsync(
         Guid ruleId, string correlationId, CancellationToken ct = default)
     {
@@ -65,10 +50,6 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
             "RuleCreated {RuleId} — Total:{Total} Success:{Success} Fail:{Fail}",
             ruleId, processed, success, fail);
     }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  DELETED
-    // ═══════════════════════════════════════════════════════════════
 
     public async Task ApplyDeletedRuleToMatchingPersonnelAsync(
         Guid ruleId, string correlationId, CancellationToken ct = default)
@@ -93,10 +74,6 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
             ruleId, processed, success, fail);
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    //  UPDATED
-    // ═══════════════════════════════════════════════════════════════
-
     public async Task ApplyUpdatedRuleToMatchingPersonnelAsync(
         Guid ruleId, string correlationId, CancellationToken ct = default)
     {
@@ -115,8 +92,7 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
             : oldSnap.RoleIds.Except(newSnap.RoleIds).ToList();
 
         int totalProcessed = 0, totalSuccess = 0, totalFail = 0;
-
-        // ─── Eski kriterlere uyan personelden kaldır (criteria değiştiyse) ───
+        
         if (criteriaChanged && rolesToRemove.Count > 0)
         {
             var plan = await _reconciliationEngine.BuildPlanAsync(
@@ -132,12 +108,11 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
                 totalProcessed += p; totalSuccess += s; totalFail += f;
             }
         }
-
-        // ─── Yeni kriterlere uyan personele tek geçişte ekle + kaldır ───
+        
         if (rolesToAdd.Count > 0 || (!criteriaChanged && rolesToRemove.Count > 0))
         {
             var effectiveRemove = criteriaChanged
-                ? new List<decimal>()   // zaten yukarıda reconcile edildi
+                ? new List<decimal>() 
                 : rolesToRemove;
 
             var (p, s, f) = await ProcessMatchingPersonnelAsync(
@@ -151,10 +126,6 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         await CompleteAsync(eventId, totalProcessed, totalSuccess, totalFail, ct);
     }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  PLAN EXECUTION
-    // ═══════════════════════════════════════════════════════════════
 
     private async Task<(int Processed, int Success, int Fail)> ExecuteRemovalPlanAsync(
         ReconciliationPlan plan, Guid eventId, CancellationToken ct)
@@ -181,14 +152,7 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         return (totalProcessed, totalSuccess, totalFail);
     }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  BATCH PROCESSING
-    // ═══════════════════════════════════════════════════════════════
-
-    /// <summary>
-    /// Wildcard destekli filtre — Created ve Update-Phase2 için.
-    /// </summary>
+    
     private async Task<(int Processed, int Success, int Fail)>
         ProcessMatchingPersonnelAsync(
             Campus? filterCampus, Title? filterTitle,
@@ -235,10 +199,7 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         return (processed, totalSuccess, totalFail);
     }
-
-    /// <summary>
-    /// Spesifik (campus, title) grubu — Reconciliation sonucu için.
-    /// </summary>
+    
     private async Task<(int Processed, int Success, int Fail)>
         ProcessGroupAsync(
             Campus groupCampus, Title groupTitle,
@@ -285,10 +246,6 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         return (processed, totalSuccess, totalFail);
     }
-
-    // ═══════════════════════════════════════════════════════════════
-    //  SETUP & COMPLETE
-    // ═══════════════════════════════════════════════════════════════
 
     private async Task<(Guid EventId, List<decimal> RoleIds, Campus? Campus, Title? Title)>
         SetupAsync(Guid ruleId, EventType eventType, string correlationId, CancellationToken ct)
@@ -345,8 +302,7 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
             .ToListAsync(ct);
 
         var newSnap = new RuleSnapshot(rule.Campus, rule.Title, newRoleIds);
-
-        // ── Mevcut event'i bul (command handler'ın oluşturduğu) ──
+        
         var evt = await eventRepo.Query()   // tracking açık!
                       .Where(e => e.SourceId == ruleId.ToString()
                                   && e.CorrelationId == correlationId
@@ -358,8 +314,7 @@ public sealed class PersonnelRoleService : IPersonnelRoleService
 
         var oldSnap = JsonSerializer.Deserialize<RuleSnapshot>(evt.SourceDetail!)
                       ?? throw new InvalidOperationException("Could not deserialize old rule snapshot.");
-
-        // ── Aynı event'i güncelle, yenisini oluşturma ──
+        
         var sourceDetail = JsonSerializer.Serialize(new
         {
             oldCampus = oldSnap.Campus, oldTitle = oldSnap.Title, oldRoleIds = oldSnap.RoleIds,

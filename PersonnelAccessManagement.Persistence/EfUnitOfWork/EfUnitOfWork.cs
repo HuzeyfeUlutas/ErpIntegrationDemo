@@ -5,7 +5,7 @@ using PersonnelAccessManagement.Persistence.DbContexts;
 
 namespace PersonnelAccessManagement.Persistence.EfUnitOfWork;
 
-public sealed class EfUnitOfWork : IUnitOfWork
+public sealed class EfUnitOfWork : IUnitOfWork, IAsyncDisposable
 {
     private readonly PersonnelAccessManagementDbContext _db;
     private IDbContextTransaction? _currentTransaction;
@@ -84,6 +84,11 @@ public sealed class EfUnitOfWork : IUnitOfWork
             await _currentTransaction.DisposeAsync();
             _currentTransaction = null;
         }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        await DisposeTransactionAsync();
     }
 
     public void Dispose()

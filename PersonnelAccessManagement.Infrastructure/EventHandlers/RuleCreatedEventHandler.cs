@@ -26,8 +26,17 @@ public sealed class RuleCreatedEventHandler : ICapSubscribe
             "RuleCreated received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
             @event.RuleId, @event.CorrelationId);
 
-        await _roleService.ApplyCreatedRuleToMatchingPersonnelAsync(
-            @event.RuleId,
-            @event.CorrelationId);
+        try
+        {
+            await _roleService.ApplyCreatedRuleToMatchingPersonnelAsync(
+                @event.RuleId, @event.CorrelationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "RuleCreated processing failed — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+                @event.RuleId, @event.CorrelationId);
+            throw;
+        }
     }
 }

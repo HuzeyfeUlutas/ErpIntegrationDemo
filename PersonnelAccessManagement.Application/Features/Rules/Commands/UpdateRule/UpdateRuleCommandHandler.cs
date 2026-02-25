@@ -51,9 +51,8 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
             .FirstOrDefaultAsync(r => r.Id == request.Id, ct);
 
         if (rule is null)
-            throw new NotFoundException($"Rule not found: {request.Id}");
-
-        // Scope unique (exclude self)
+            throw new NotFoundException($"Kural bulunamadı: {request.Id}");
+        
         var exists = await _rules.Query()
             .AnyAsync(r => r.Id != request.Id
                         && r.Campus == request.Campus
@@ -61,22 +60,26 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
                         && !r.IsDeleted, ct);
 
         if (exists)
-            throw new ConflictException("A rule with the same campus/title scope already exists.");
+            throw new ConflictException("Aynı kampüs ve unvan kapsamında zaten bir kural mevcut.");
+
 
         var roles = await _roles.Query()
             .Where(r => request.RoleIds.Contains(r.Id))
             .ToListAsync(ct);
 
         if (roles.Count != request.RoleIds.Count)
-            throw new NotFoundException("One or more roles were not found.");
-
-        // ─── Eski durumu kaydet (reconciliation için) ───
+            throw new NotFoundException("Bir veya daha fazla rol bulunamadı.");
+        
         var oldRoleIds = rule.Roles.Select(r => r.Id).ToList();
 
         bool hasChanges = rule.Campus != request.Campus
                        || rule.Title != request.Title
                        || !oldRoleIds.OrderBy(x => x)
                               .SequenceEqual(request.RoleIds.OrderBy(x => x));
+        
+        
+        using var transaction = await _uow.BeginTransactionAsync(_capPublisher, ct);
+
 
         if (hasChanges)
         {
@@ -90,9 +93,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
 
             await _events.AddAsync(snapshotEvent, ct);
         }
-
-        // ─── Güncelle ───
-
+        
         rule.Update(request.Name, request.Campus, request.Title, request.IsActive);
 
         rule.Roles.Clear();
@@ -100,9 +101,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
             rule.AddRole(role);
 
         await _uow.SaveChangesAsync(ct);
-
-        // ─── Değişiklik varsa background job tetikle ───
-
+        
         if (hasChanges)
         {
             await _capPublisher.PublishAsync(
@@ -114,5 +113,7 @@ public sealed class UpdateRuleCommandHandler : IRequestHandler<UpdateRuleCommand
                 },
                 cancellationToken: ct);
         }
+        
+        await _uow.CommitTransactionAsync(ct);
     }
 }

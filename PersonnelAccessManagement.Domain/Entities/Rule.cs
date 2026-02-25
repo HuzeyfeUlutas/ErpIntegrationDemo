@@ -20,7 +20,6 @@ public sealed class Rule: AuditableEntity<Guid>
         Name = name.Trim();
         Campus = campus;
         Title  = title;
-        CreatedAt = DateTime.UtcNow;
     }
     public void Update(string name, Campus? campus, Title? title, bool isActive)
     {

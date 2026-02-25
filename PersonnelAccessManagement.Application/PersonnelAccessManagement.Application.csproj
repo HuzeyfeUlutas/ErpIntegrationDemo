@@ -11,7 +11,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="AutoMapper" Version="14.0.0" />
       <PackageReference Include="DotNetCore.CAP" Version="8.3.5" />
       <PackageReference Include="DotNetCore.CAP.Dashboard" Version="8.3.5" />
       <PackageReference Include="DotNetCore.CAP.PostgreSql" Version="8.3.5" />

@@ -29,11 +29,11 @@ export function RHFSwitch<T extends FieldValues>({
           help={fieldState.error?.message}
         >
           <Switch
-            checked={field.value === 'active'}
-            onChange={(checked) => field.onChange(checked ? 'active' : 'inactive')}
-            checkedChildren={checkedLabel}
-            unCheckedChildren={uncheckedLabel}
-            disabled={disabled}
+              checked={!!field.value}
+              onChange={(checked) => field.onChange(checked)}
+              checkedChildren={checkedLabel}
+              unCheckedChildren={uncheckedLabel}
+              disabled={disabled}
           />
         </Form.Item>
       )}

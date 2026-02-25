@@ -31,8 +31,7 @@ public sealed class HiredEventHandler : ICapSubscribe
         _logger.LogInformation(
             "CAP received HIRED — EmployeeNo: {EmployeeNo}, EffectiveDate: {Date}, EventId: {EventId}",
             @event.EmployeeNo, @event.EffectiveDate, @event.EventId);
-
-        // Idempotency
+        
         var exists = await _scheduledActionRepo.QueryAsNoTracking()
             .AnyAsync(x => x.EventId == @event.EventId);
 

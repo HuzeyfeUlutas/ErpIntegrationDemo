@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PersonnelAccessManagement.Persistence.DbContexts;
@@ -11,9 +12,11 @@ using PersonnelAccessManagement.Persistence.DbContexts;
 namespace PersonnelAccessManagement.Persistence.Migrations
 {
     [DbContext(typeof(PersonnelAccessManagementDbContext))]
-    partial class PersonnelAccessManagementDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260222125643_AddRefreshToken")]
+    partial class AddRefreshToken
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -296,7 +299,7 @@ namespace PersonnelAccessManagement.Persistence.Migrations
 
                     b.HasIndex("Status");
 
-                    b.ToTable("KafkaEventLogs", (string)null);
+                    b.ToTable("kafka_event_logs", (string)null);
                 });
 
             modelBuilder.Entity("PersonnelAccessManagement.Domain.Entities.Personnel", b =>
@@ -317,6 +320,7 @@ namespace PersonnelAccessManagement.Persistence.Migrations
                         .HasColumnType("text");
 
                     b.Property<decimal>("EmployeeNo")
+                        .HasMaxLength(50)
                         .HasColumnType("numeric");
 
                     b.Property<string>("FullName")
@@ -404,7 +408,7 @@ namespace PersonnelAccessManagement.Persistence.Migrations
 
                     b.HasIndex("EffectiveDate", "Status");
 
-                    b.ToTable("PersonnelScheduledActions", (string)null);
+                    b.ToTable("personnel_scheduled_actions", (string)null);
                 });
 
             modelBuilder.Entity("PersonnelAccessManagement.Domain.Entities.RefreshToken", b =>
@@ -447,7 +451,7 @@ namespace PersonnelAccessManagement.Persistence.Migrations
                     b.HasIndex("Token")
                         .IsUnique();
 
-                    b.ToTable("RefreshTokens", (string)null);
+                    b.ToTable("refresh_tokens", (string)null);
                 });
 
             modelBuilder.Entity("PersonnelAccessManagement.Domain.Entities.Role", b =>

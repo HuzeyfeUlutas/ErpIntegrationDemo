@@ -7,14 +7,6 @@ using PersonnelAccessManagement.Domain.Enums;
 
 namespace PersonnelAccessManagement.Infrastructure.Jobs;
 
-/// <summary>
-/// Hangfire recurring job — Her gün 09:00'da çalışır.
-/// 
-/// 3 izole scope:
-///   1) İş mantığı (process + action status)
-///   2) Job log (DB loglama)
-///   3) Finalize (job status)
-/// </summary>
 public sealed class DailyScheduledActionJob : IScheduledActionJob
 {
     private readonly IServiceScopeFactory _scopeFactory;
@@ -31,11 +23,10 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
     public async Task ExecuteAsync(CancellationToken ct)
     {
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
-        var tomorrow = today.AddDays(1);
 
         _logger.LogInformation("DailyScheduledActionJob started — Date: {Date}", today);
 
-        // ── 1) Job oluştur + action ID'leri çek ─────────────────
+       
         Guid jobId;
         List<long> actionIds;
 
@@ -49,7 +40,7 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
                 .Where(x => x.Status == ScheduledActionStatus.Pending)
                 .Where(x =>
                     (x.ActionType == ScheduledActionType.Hire && x.EffectiveDate <= today) ||
-                    (x.ActionType == ScheduledActionType.Terminate && x.EffectiveDate <= tomorrow))
+                    (x.ActionType == ScheduledActionType.Terminate && x.EffectiveDate < today))
                 .OrderBy(x => x.EffectiveDate)
                 .ThenBy(x => x.Id)
                 .Select(x => x.Id)
@@ -70,21 +61,16 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
         }
 
         _logger.LogInformation("Found {Count} pending action(s)", actionIds.Count);
-
-        // ── 2) Her action'ı işle ────────────────────────────────
+        
         foreach (var actionId in actionIds)
         {
             var result = await ProcessAction(actionId, ct);
             await WriteJobLog(jobId, result, ct);
         }
-
-        // ── 3) Job'u tamamla ────────────────────────────────────
+        
         await FinalizeJob(jobId, ct);
     }
-
-    /// <summary>
-    /// Scope 1: İş mantığı + action status güncelleme.
-    /// </summary>
+    
     private async Task<ActionResult> ProcessAction(long actionId, CancellationToken ct)
     {
         try
@@ -117,7 +103,10 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
             _logger.LogInformation("Action {Id} completed — {ActionType} for {EmployeeNo}",
                 action.Id, action.ActionType, action.EmployeeNo);
 
-            return ActionResult.Ok(actionId, $"{action.ActionType} completed for EmployeeNo: {action.EmployeeNo}");
+            return ActionResult.Ok(
+                actionId,
+                $"{action.ActionType.ToLogMessage()} başarıyla tamamlandı. Personel No: {action.EmployeeNo}"
+            );
         }
         catch (Exception ex)
         {
@@ -125,10 +114,7 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
             return ActionResult.Fail(actionId, ex.Message);
         }
     }
-
-    /// <summary>
-    /// Scope 2: Job log yazma — Job entity'sine dokunmadan doğrudan JobLog ekler.
-    /// </summary>
+    
     private async Task WriteJobLog(Guid jobId, ActionResult result, CancellationToken ct)
     {
         try
@@ -148,10 +134,7 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
             _logger.LogCritical(ex, "Failed to write job log for action {ActionId}", result.ActionId);
         }
     }
-
-    /// <summary>
-    /// Scope 3: Job status finalize — loglardan count hesaplar.
-    /// </summary>
+    
     private async Task FinalizeJob(Guid jobId, CancellationToken ct)
     {
         try
@@ -180,10 +163,7 @@ public sealed class DailyScheduledActionJob : IScheduledActionJob
             _logger.LogCritical(ex, "Failed to finalize job {JobId}", jobId);
         }
     }
-
-    /// <summary>
-    /// Scope'lar arası veri taşımak için basit DTO.
-    /// </summary>
+    
     private sealed record ActionResult(long ActionId, bool Success, string Message)
     {
         public static ActionResult Ok(long actionId, string message) => new(actionId, true, message);

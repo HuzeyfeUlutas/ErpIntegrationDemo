@@ -30,7 +30,6 @@ public sealed class Event : AuditableEntity<Guid>
         SourceDetail = sourceDetail;
         CorrelationId = correlationId.Trim();
         OccurredAt = DateTime.UtcNow;
-        CreatedAt = DateTime.UtcNow;
     }
     
     public void UpdateSourceDetail(string sourceDetail)

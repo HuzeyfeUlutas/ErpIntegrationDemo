@@ -1,5 +1,3 @@
-// ── Batch Processor (her çağrı kendi scope'unda) ──
-
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -57,8 +55,7 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
         foreach (var personnel in personnelList)
         {
             var personHasFailure = false;
-
-            // ── Ekle ──
+            
             foreach (var roleId in roleIdsToAdd)
             {
                 if (!roles.TryGetValue(roleId, out var role))
@@ -98,8 +95,7 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
                     personHasFailure = true;
                 }
             }
-
-            // ── Çıkar ──
+            
             foreach (var roleId in roleIdsToRemove)
             {
                 if (!roles.TryGetValue(roleId, out var role))
@@ -139,8 +135,7 @@ public sealed class PersonnelRoleBatchProcessor : IPersonnelRoleBatchProcessor
                     personHasFailure = true;
                 }
             }
-
-            // ✅ Personel bazlı sayaç
+            
             if (personHasFailure) fail++;
             else success++;
         }

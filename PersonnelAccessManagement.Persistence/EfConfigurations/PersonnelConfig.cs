@@ -13,7 +13,6 @@ public sealed class PersonnelConfig : IEntityTypeConfiguration<Personnel>
         b.HasKey(x => x.Id);
 
         b.Property(x => x.EmployeeNo)
-            .HasMaxLength(50)
             .IsRequired();
 
         b.HasIndex(x => x.EmployeeNo)

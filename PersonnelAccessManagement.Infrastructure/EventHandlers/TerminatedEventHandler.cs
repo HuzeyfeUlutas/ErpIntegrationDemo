@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using PersonnelAccessManagement.Application.Common.Constants;
 using PersonnelAccessManagement.Application.Common.Interfaces;
+using PersonnelAccessManagement.Application.Common.Options;
 using PersonnelAccessManagement.Domain.Entities;
 using PersonnelAccessManagement.Domain.Enums;
 using PersonnelAccessManagement.Domain.Events;
@@ -41,8 +42,7 @@ public sealed class TerminatedEventHandler : ICapSubscribe
         _logger.LogInformation(
             "CAP received TERMINATED — EmployeeNo: {EmployeeNo}, EffectiveDate: {Date}, EventId: {EventId}",
             @event.EmployeeNo, @event.EffectiveDate, @event.EventId);
-
-        // 1) Idempotency
+        
         var exists = await _scheduledActionRepo.QueryAsNoTracking()
             .AnyAsync(x => x.EventId == @event.EventId);
 
@@ -64,8 +64,14 @@ public sealed class TerminatedEventHandler : ICapSubscribe
                 @event.EmployeeNo, @event.EventId);
             return;
         }
-
-        // 2) Personeli bul
+        
+        if (!decimal.TryParse(@event.EmployeeNo, out var empNo))
+        {
+            _logger.LogError("Invalid EmployeeNo format: {EmployeeNo}, EventId: {EventId}",
+                @event.EmployeeNo, @event.EventId);
+            return;
+        }
+        
         var personnel = await _personnelRepo.Query()
             .Include(p => p.Roles)
             .FirstOrDefaultAsync(p => p.EmployeeNo == decimal.Parse(@event.EmployeeNo));
@@ -77,7 +83,6 @@ public sealed class TerminatedEventHandler : ICapSubscribe
         }
         else
         {
-            // 3) DefaultHireRole'ü kaldır
             var activeRole = personnel.Roles.FirstOrDefault(r => r.Id == _roleOptions.DefaultHireRoleId);
 
             if (activeRole is not null)
@@ -85,8 +90,7 @@ public sealed class TerminatedEventHandler : ICapSubscribe
                 personnel.RemoveRole(activeRole.Id);
                 _logger.LogInformation("Removed DefaultHireRole {RoleId} from {EmployeeNo}", activeRole.Id, @event.EmployeeNo);
             }
-
-            // 4) ExitingRole'ü ekle
+            
             var exitingRole = await _roleRepo.Query()
                 .FirstOrDefaultAsync(r => r.Id == _roleOptions.ExitingRoleId);
 
@@ -99,11 +103,8 @@ public sealed class TerminatedEventHandler : ICapSubscribe
             {
                 _logger.LogError("ExitingRole {RoleId} not found in database!", _roleOptions.ExitingRoleId);
             }
-
-            _personnelRepo.Update(personnel);
         }
-
-        // 5) Scheduled action
+        
         var action = new PersonnelScheduledAction
         {
             EventId = @event.EventId,

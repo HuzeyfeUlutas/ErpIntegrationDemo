@@ -36,8 +36,7 @@ public sealed class JwtTokenGenerator : IJwtTokenGenerator
             new("campus", personnel.Campus.ToString()),
             new("title", personnel.Title.ToString()),
         };
-
-        // Admin yetkisi — appsettings'teki listeye göre
+        
         if (_adminSettings.AdminEmployeeNos.Contains(employeeNo))
         {
             claims.Add(new Claim(ClaimTypes.Role, "Admin"));

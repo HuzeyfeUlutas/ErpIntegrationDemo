@@ -20,10 +20,7 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
         _ruleRepo = ruleRepo;
         _logger = logger;
     }
-
-    /// <summary>
-    /// Personeli bul → Campus/Title'a uyan aktif kuralları çek → kuralların rollerini personele ata.
-    /// </summary>
+    
     public async Task ProcessHireAsync(PersonnelScheduledAction action, CancellationToken ct)
     {
         _logger.LogInformation(
@@ -39,8 +36,7 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
             _logger.LogWarning("Personnel {EmployeeNo} not found for HIRE action.", action.EmployeeNo);
             return;
         }
-
-        // Personelin Campus/Title'ına uyan aktif kuralları çek (null = wildcard)
+        
         var matchingRules = await _ruleRepo.Query()
             .Include(r => r.Roles)
             .Where(r => r.IsActive && !r.IsDeleted)
@@ -55,14 +51,12 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
                 action.EmployeeNo, personnel.Campus, personnel.Title);
             return;
         }
-
-        // Tüm kuralların rollerini distinct olarak çek
+        
         var distinctRoles = matchingRules
             .SelectMany(r => r.Roles)
             .DistinctBy(r => r.Id)
             .ToList();
-
-        // Personele ata
+        
         var assignedCount = 0;
         foreach (var role in distinctRoles)
         {
@@ -83,10 +77,7 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
             "HIRE completed — {EmployeeNo}: {RuleCount} rule(s) matched, {DistinctRoles} distinct role(s), {Assigned} newly assigned",
             action.EmployeeNo, matchingRules.Count, distinctRoles.Count, assignedCount);
     }
-
-    /// <summary>
-    /// Personelin tüm rollerini kaldır → soft delete.
-    /// </summary>
+    
     public async Task ProcessTerminationAsync(PersonnelScheduledAction action, CancellationToken ct)
     {
         _logger.LogInformation(
@@ -102,8 +93,7 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
             _logger.LogWarning("Personnel {EmployeeNo} not found for TERMINATE action.", action.EmployeeNo);
             return;
         }
-
-        // Tüm rolleri kaldır
+        
         var removedRoles = personnel.Roles.Select(r => new { r.Id, r.Name }).ToList();
         personnel.SetRoles(Enumerable.Empty<Role>());
 
@@ -113,8 +103,7 @@ public sealed class ScheduledActionProcessor : IScheduledActionProcessor
                 "Removed role {RoleName} ({RoleId}) from {EmployeeNo}",
                 role.Name, role.Id, action.EmployeeNo);
         }
-
-        // Soft delete
+        
         personnel.SoftDelete();
         _personnelRepo.Update(personnel);
 

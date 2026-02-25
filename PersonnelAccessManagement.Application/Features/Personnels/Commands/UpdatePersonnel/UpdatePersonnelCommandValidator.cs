@@ -6,15 +6,17 @@ public sealed class UpdatePersonnelCommandValidator : AbstractValidator<UpdatePe
 {
     public UpdatePersonnelCommandValidator()
     {
-        RuleFor(x => x.EmployeeNo).NotEmpty();
+        RuleFor(x => x.EmployeeNo)
+            .NotEmpty().WithMessage("Sicil numarası zorunludur.");
+
         RuleFor(x => x.RoleIds)
-            .NotNull();
+            .NotNull().WithMessage("Rol listesi zorunludur.");
 
         RuleForEach(x => x.RoleIds)
-            .GreaterThan(0);
+            .GreaterThan(0).WithMessage("Rol ID sıfırdan büyük olmalıdır.");
 
         RuleFor(x => x.RoleIds)
             .Must(ids => ids.Distinct().Count() == ids.Count)
-            .WithMessage("Duplicate role ids are not allowed.");
+            .WithMessage("Aynı rol birden fazla kez eklenemez.");
     }
 }

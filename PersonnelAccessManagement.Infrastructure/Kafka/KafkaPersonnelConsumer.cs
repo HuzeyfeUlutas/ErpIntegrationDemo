@@ -74,7 +74,6 @@ public sealed class KafkaPersonnelConsumer : BackgroundService
         IConsumer<string, string> consumer,
         CancellationToken ct)
     {
-        // 1) Deserialize
         var (evt, deserializeError) = TryDeserialize(result);
 
         if (deserializeError is not null)
@@ -90,8 +89,7 @@ public sealed class KafkaPersonnelConsumer : BackgroundService
             CommitOffset(consumer, result);
             return;
         }
-
-        // 2) Topic mapping
+        
         if (!_bridge.TryGetCapTopic(evt, out var capTopic))
         {
             _logger.LogWarning("Unknown event type {EventType}, skipping.", evt.EventType);
@@ -99,8 +97,7 @@ public sealed class KafkaPersonnelConsumer : BackgroundService
             CommitOffset(consumer, result);
             return;
         }
-
-        // 3) CAP publish (outbox)
+        
         try
         {
             await _bridge.PublishAsync(evt, capTopic, ct);

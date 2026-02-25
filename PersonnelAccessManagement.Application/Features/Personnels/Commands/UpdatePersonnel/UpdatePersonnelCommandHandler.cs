@@ -30,14 +30,14 @@ public sealed class UpdatePersonnelCommandHandler : IRequestHandler<UpdatePerson
             .FirstOrDefaultAsync(r => r.EmployeeNo == request.EmployeeNo, ct);
 
         if (personnel is null)
-            throw new NotFoundException($"Personnel not found: {request.EmployeeNo}");
+            throw new NotFoundException($"Personel bulunamadı: {request.EmployeeNo}");
 
         var roles = await _roles.Query()
             .Where(r => request.RoleIds.Contains(r.Id))
             .ToListAsync(ct);
 
         if (roles.Count != request.RoleIds.Count)
-            throw new NotFoundException("One or more roles were not found.");
+            throw new NotFoundException("Bir veya daha fazla rol bulunamadı.");
         
         personnel.SetRoles(roles);
         

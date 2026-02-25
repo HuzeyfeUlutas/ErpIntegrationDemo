@@ -26,7 +26,17 @@ public sealed class RuleDeletedEventHandler : ICapSubscribe
             "RuleDeleted received — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
             @event.RuleId, @event.CorrelationId);
 
-        await _roleService.ApplyDeletedRuleToMatchingPersonnelAsync(
-            @event.RuleId, @event.CorrelationId);
+        try
+        {
+            await _roleService.ApplyDeletedRuleToMatchingPersonnelAsync(
+                @event.RuleId, @event.CorrelationId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex,
+                "RuleDeleted processing failed — RuleId: {RuleId}, CorrelationId: {CorrelationId}",
+                @event.RuleId, @event.CorrelationId);
+            throw;
+        }
     }
 }

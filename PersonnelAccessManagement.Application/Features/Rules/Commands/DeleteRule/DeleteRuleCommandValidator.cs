@@ -6,6 +6,6 @@ public sealed class DeleteRuleCommandValidator : AbstractValidator<DeleteRuleCom
 {
     public DeleteRuleCommandValidator()
     {
-        RuleFor(x => x.Id).NotEmpty();
+        RuleFor(x => x.Id).NotEmpty().WithMessage("Kural ID zorunludur.");
     }
 }

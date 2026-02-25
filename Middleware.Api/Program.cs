@@ -6,28 +6,32 @@ using MiddlewareApplication.Ingestion;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var cs = builder.Configuration.GetConnectionString("Default")
-         ?? throw new InvalidOperationException("ConnectionStrings:Default is missing.");
+var middlewareCs = builder.Configuration.GetConnectionString("Default")
+                  ?? throw new InvalidOperationException("ConnectionStrings:Default is missing.");
+
+var pamCs = builder.Configuration.GetConnectionString("PamDb")
+            ?? throw new InvalidOperationException("ConnectionStrings:PamDb is missing.");
 
 var hmacOptions = builder.Configuration.GetSection("Security").Get<HmacOptions>()
                   ?? throw new InvalidOperationException("Security section is missing.");
 
-var kafkaOptions = builder.Configuration.GetSection("Kafka").Get<KafkaOptions>()
-                   ?? throw new InvalidOperationException("Kafka section is missing.");
-
 builder.Services.AddSingleton(hmacOptions);
 builder.Services.AddSingleton<HmacSignatureVerifier>();
 
-builder.Services.AddSingleton(new DbOptions { ConnectionString = cs });
+builder.Services.AddSingleton(new DbOptions { ConnectionString = middlewareCs });
 builder.Services.AddScoped<IProcessedRequestsStore, ProcessedRequestsRepository>();
 builder.Services.AddScoped<DbInitializer>();
+
+var pamDbOptions = new PamDbOptions { ConnectionString = pamCs };
+builder.Services.AddSingleton(pamDbOptions);
+builder.Services.AddScoped<IPersonnelDbUpdater, PersonnelDbUpdater>();
+
+var kafkaOptions = builder.Configuration.GetSection("Kafka").Get<KafkaOptions>()
+                   ?? throw new InvalidOperationException("Kafka section is missing.");
 
 builder.Services.AddSingleton(kafkaOptions);
 builder.Services.AddSingleton<IEventPublisher, KafkaProducer>();
@@ -36,7 +40,6 @@ builder.Services.AddScoped<SapEventIngestionHandler>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -50,7 +53,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
-
 app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
 

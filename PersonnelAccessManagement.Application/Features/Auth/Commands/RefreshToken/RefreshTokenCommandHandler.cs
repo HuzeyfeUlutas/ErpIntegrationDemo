@@ -37,7 +37,6 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
 
     public async Task<AuthResponse> Handle(RefreshTokenCommand request, CancellationToken ct)
     {
-        // 1) Refresh token'ı bul
         var existing = await _refreshTokenRepo.Query()
             .FirstOrDefaultAsync(x => x.Token == request.RefreshToken, ct);
 
@@ -46,8 +45,7 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
             _logger.LogWarning("Refresh token invalid or expired.");
             throw new UnauthorizedException("Geçersiz veya süresi dolmuş refresh token.");
         }
-
-        // 2) Personeli bul
+        
         var personnel = await _personnelRepo.QueryAsNoTracking()
             .Include(p => p.Roles)
             .FirstOrDefaultAsync(p => p.EmployeeNo == decimal.Parse(existing.EmployeeNo), ct);
@@ -58,17 +56,14 @@ public sealed class RefreshTokenCommandHandler : IRequestHandler<RefreshTokenCom
             await _uow.SaveChangesAsync(ct);
             throw new UnauthorizedException("Kullanıcı bulunamadı.");
         }
-
-        // 3) Eski token'ı revoke et
+        
         existing.Revoke();
-
-        // 4) Yeni refresh token oluştur (token rotation)
+        
         var newRefreshToken = new Domain.Entities.RefreshToken(
             existing.EmployeeNo, _jwtOptions.RefreshTokenExpirationDays);
         await _refreshTokenRepo.AddAsync(newRefreshToken, ct);
         await _uow.SaveChangesAsync(ct);
-
-        // 5) Yeni access token üret
+        
         var accessToken = _tokenGenerator.GenerateToken(personnel);
 
         _logger.LogInformation("Token refreshed — EmployeeNo: {EmployeeNo}", existing.EmployeeNo);

@@ -14,24 +14,21 @@ public sealed class JobsController : ControllerBase
 {
     private readonly IMediator _mediator;
     public JobsController(IMediator mediator) => _mediator = mediator;
-
-    // GET /api/jobs?PageIndex=1&PageSize=10&Status=...&JobType=...
+    
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] JobFilter filter, CancellationToken ct)
     {
         var result = await _mediator.Send(new ListJobsQuery(filter), ct);
         return Ok(result);
     }
-
-    // GET /api/jobs/{id}/logs
+    
     [HttpGet("{id:guid}/logs")]
     public async Task<IActionResult> GetLogs([FromRoute] Guid id, CancellationToken ct)
     {
         var logs = await _mediator.Send(new GetJobLogsQuery(id), ct);
         return Ok(logs);
     }
-
-    // GET /api/jobs/{id}/logs/export
+    
     [HttpGet("{id:guid}/logs/export")]
     public async Task<IActionResult> ExportLogs([FromRoute] Guid id, CancellationToken ct)
     {
@@ -39,8 +36,7 @@ public sealed class JobsController : ControllerBase
 
         using var workbook = new XLWorkbook();
         var ws = workbook.Worksheets.Add("Job Logları");
-
-        // Başlıklar
+        
         var headers = new[] { "#", "Mesaj", "Durum", "Tarih" };
         for (var i = 0; i < headers.Length; i++)
         {
@@ -48,8 +44,7 @@ public sealed class JobsController : ControllerBase
             ws.Cell(1, i + 1).Style.Font.Bold = true;
             ws.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
         }
-
-        // Status Türkçe map
+        
         string TrStatus(string s) => s switch
         {
             "INFO" => "Bilgi",

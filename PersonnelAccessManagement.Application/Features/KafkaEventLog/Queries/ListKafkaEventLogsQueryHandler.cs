@@ -1,6 +1,7 @@
 using System.Text.Json;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using PersonnelAccessManagement.Application.Common.Extensions;
 using PersonnelAccessManagement.Application.Common.Interfaces;
 using PersonnelAccessManagement.Application.Common.Models;
@@ -12,10 +13,12 @@ public sealed class ListKafkaEventLogsQueryHandler
     : IRequestHandler<ListKafkaEventLogsQuery, PagedQueryResult<IEnumerable<KafkaEventLogDto>>>
 {
     private readonly IRepository<Domain.Entities.KafkaEventLog> _repo;
+    private readonly ILogger<ListKafkaEventLogsQueryHandler> _logger;
 
-    public ListKafkaEventLogsQueryHandler(IRepository<Domain.Entities.KafkaEventLog> repo)
+    public ListKafkaEventLogsQueryHandler(IRepository<Domain.Entities.KafkaEventLog> repo,  ILogger<ListKafkaEventLogsQueryHandler> logger)
     {
         _repo = repo;
+        _logger = logger;
     }
 
     public async Task<PagedQueryResult<IEnumerable<KafkaEventLogDto>>> Handle(
@@ -25,12 +28,10 @@ public sealed class ListKafkaEventLogsQueryHandler
         var search = f.Search?.Trim();
 
         var q = _repo.QueryAsNoTracking().AsQueryable();
-
-        // Status filtresi
+        
         if (!string.IsNullOrWhiteSpace(f.Status))
             q = q.Where(e => e.Status == f.Status);
-
-        // Search: Topic veya MessageValue içinde EmployeeNo arama
+        
         if (!string.IsNullOrWhiteSpace(search))
         {
             q = q.Where(e =>
@@ -38,8 +39,7 @@ public sealed class ListKafkaEventLogsQueryHandler
                 (e.MessageKey != null && e.MessageKey.Contains(search)) ||
                 (e.MessageValue != null && e.MessageValue.Contains(search)));
         }
-
-        // EventType filtresi (MessageValue JSON içinde)
+        
         if (!string.IsNullOrWhiteSpace(f.EventType))
         {
             q = q.Where(e => e.MessageValue != null && e.MessageValue.Contains(f.EventType));
@@ -52,12 +52,12 @@ public sealed class ListKafkaEventLogsQueryHandler
             .GetPaged(f)
             .ToListAsync(ct);
 
-        var dtos = entities.Select(MapToDto).ToList();
+        var dtos = entities.Select(e => MapToDto(e, _logger)).ToList();
 
         return dtos.ToPagedQueryResult(f, rowCount);
     }
 
-    private static KafkaEventLogDto MapToDto(Domain.Entities.KafkaEventLog entity)
+    private static KafkaEventLogDto MapToDto(Domain.Entities.KafkaEventLog entity, ILogger logger)
     {
         string? eventType = null, employeeNo = null, effectiveDate = null,
             occuredAtUtc = null, correlationId = null, eventId = null;
@@ -76,9 +76,12 @@ public sealed class ListKafkaEventLogsQueryHandler
                 correlationId = root.TryGetProperty("CorrelationId", out var ci) ? ci.GetString() : null;
                 eventId = root.TryGetProperty("EventId", out var ei) ? ei.GetString() : null;
             }
-            catch
+            catch (JsonException ex)
             {
-                // JSON parse hatası — null kalır
+                logger.LogWarning(ex, 
+                    "KafkaEventLog {Id} — MessageValue JSON parse edilemedi. Value: {Value}", 
+                    entity.Id, 
+                    entity.MessageValue?[..Math.Min(entity.MessageValue.Length, 200)]);
             }
         }
 

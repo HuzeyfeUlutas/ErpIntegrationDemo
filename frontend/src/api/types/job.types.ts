@@ -44,11 +44,6 @@ export const JOB_TYPE_LABEL: Record<string, string> = {
     PersonnelSync: 'Personel Senkronizasyonu',
 };
 
-export const JOB_TYPE_OPTIONS = [
-    { label: 'Kural Senkronizasyonu', value: 'RuleSync' },
-    { label: 'Personel Senkronizasyonu', value: 'PersonnelSync' },
-];
-
 export const JOB_LOG_STATUS_LABEL: Record<string, string> = {
     INFO: 'Bilgi',
     FATAL: 'Kritik Hata',

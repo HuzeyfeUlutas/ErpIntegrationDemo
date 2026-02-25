@@ -1,7 +1,7 @@
 using MediatR;
 using PersonnelAccessManagement.Application.Features.Auth.Dtos;
 
-namespace PersonnelAccessManagement.Application.Features.Auth.Commands;
+namespace PersonnelAccessManagement.Application.Features.Auth.Commands.Login;
 
 public sealed record LoginCommand(
     string EmployeeNo,

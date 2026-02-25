@@ -1,5 +1,3 @@
-using AutoMapper;
-using AutoMapper.QueryableExtensions;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using PersonnelAccessManagement.Application.Common.Extensions;
@@ -14,12 +12,10 @@ public sealed class ListRolesQueryHandler
     : IRequestHandler<ListRolesQuery, PagedQueryResult<IEnumerable<RoleDto>>>
 {
     private readonly IRepository<Role> _roles;
-    private readonly IMapper _mapper;
 
-    public ListRolesQueryHandler(IRepository<Role> roles, IMapper mapper)
+    public ListRolesQueryHandler(IRepository<Role> roles)
     {
         _roles = roles;
-        _mapper = mapper;
     }
 
     public async Task<PagedQueryResult<IEnumerable<RoleDto>>> Handle(ListRolesQuery request, CancellationToken ct)
@@ -33,12 +29,11 @@ public sealed class ListRolesQueryHandler
 
         var rowCount = await q.CountAsync(ct);
 
-        var page = q
-            .OrderBy(r => r.Name)                
+        var items = await q
+            .OrderBy(r => r.Name)
             .GetPaged(f)
-            .ProjectTo<RoleDto>(_mapper.ConfigurationProvider); 
-
-        var items = await page.ToListAsync(ct);
+            .Select(r => new RoleDto(r.Id, r.Name))
+            .ToListAsync(ct);
 
         return items.ToPagedQueryResult(f, rowCount);
     }

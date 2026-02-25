@@ -34,17 +34,15 @@ export interface EventFilter {
 }
 
 export const EVENT_TYPE_LABEL: Record<string, string> = {
-  RuleApplied: 'Kural Uygulandı',
-  RoleAssigned: 'Rol Atandı',
-  RoleRevoked: 'Rol Kaldırıldı',
-  Sync: 'Senkronizasyon',
+  RuleCreated: 'Kural Oluşturuldu',
+  RuleUpdated: 'Kural Güncellendi',
+  RuleDeleted: 'Kural Silindi'
 };
 
 export const EVENT_TYPE_OPTIONS = [
-  { label: 'Kural Uygulandı', value: 'RuleApplied' },
-  { label: 'Rol Atandı', value: 'RoleAssigned' },
-  { label: 'Rol Kaldırıldı', value: 'RoleRevoked' },
-  { label: 'Senkronizasyon', value: 'Sync' },
+  { label: 'Kural Oluşturuldu', value: 'RuleCreated' },
+  { label: 'Kural Güncellendi', value: 'RuleUpdated' },
+  { label: 'Kural Silindi', value: 'RuleDeleted' },
 ];
 
 export const COMPLETED_OPTIONS = [

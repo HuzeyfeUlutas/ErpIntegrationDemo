@@ -14,14 +14,8 @@ public sealed class JwtOptions
 
     [Required]
     public string Audience { get; init; } = default!;
-
-    /// <summary>
-    /// Access token süresi (dakika). Kısa tutulmalı.
-    /// </summary>
+    
     public int AccessTokenExpirationMinutes { get; init; } = 60;
-
-    /// <summary>
-    /// Refresh token süresi (gün).
-    /// </summary>
+    
     public int RefreshTokenExpirationDays { get; init; } = 7;
 }

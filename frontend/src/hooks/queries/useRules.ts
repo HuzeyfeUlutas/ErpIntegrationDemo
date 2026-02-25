@@ -42,7 +42,8 @@ export const useUpdateRule = (onSuccess?: () => void) => {
             onSuccess?.();
         },
         onError: (err: any) => {
-            const msg = err?.response?.data?.detail ?? 'Kural güncellenirken bir hata oluştu';
+            const data = err?.response?.data;
+            const msg = data?.detail ?? data?.title ?? 'Kural güncellenirken bir hata oluştu';
             message.error(msg);
         },
     });
@@ -59,7 +60,8 @@ export const useDeleteRule = () => {
             message.success('Kural başarıyla silindi');
         },
         onError: (err: any) => {
-            const msg = err?.response?.data?.detail ?? 'Kural silinirken bir hata oluştu';
+            const data = err?.response?.data;
+            const msg = data?.detail ?? data?.title ?? 'Kural silinirken bir hata oluştu';
             message.error(msg);
         },
     });

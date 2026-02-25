@@ -67,6 +67,7 @@ export function RulesPage() {
             title: 'Kural Adı',
             dataIndex: 'name',
             key: 'name',
+            width: 130,
         },
         {
             title: 'Kampüs',
@@ -99,12 +100,9 @@ export function RulesPage() {
             width: 280,
             render: (roles: RuleDto['roles']) => (
                 <Space size={[0, 4]} wrap>
-                    {roles.slice(0, 3).map((role) => (
+                    {roles.map((role) => (
                         <Tag key={role.id} color="volcano">{role.name}</Tag>
                     ))}
-                    {roles.length > 3 && (
-                        <Tag color="default">+{roles.length - 3} rol</Tag>
-                    )}
                     {roles.length === 0 && <Tag color="default">Rol atanmamış</Tag>}
                 </Space>
             ),

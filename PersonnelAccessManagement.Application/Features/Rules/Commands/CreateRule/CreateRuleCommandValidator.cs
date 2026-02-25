@@ -6,8 +6,10 @@ public sealed class CreateRuleCommandValidator : AbstractValidator<CreateRuleCom
 {
     public CreateRuleCommandValidator()
     {
-        RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
-        RuleFor(x => x.RoleIds).NotNull().NotEmpty();
-        RuleForEach(x => x.RoleIds).NotEmpty();
+        RuleFor(x => x.Name).NotEmpty().WithMessage("Kural adı zorunludur.")
+            .MaximumLength(200).WithMessage("Kural adı en fazla 200 karakter olabilir.");
+        RuleFor(x => x.RoleIds).NotNull().WithMessage("Rol listesi zorunludur.")
+            .NotEmpty().WithMessage("En az bir rol seçilmelidir.");
+        RuleForEach(x => x.RoleIds).NotEmpty().WithMessage("Rol ID boş olamaz.");
     }
 }

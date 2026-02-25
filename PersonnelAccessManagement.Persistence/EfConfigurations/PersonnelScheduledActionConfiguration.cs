@@ -9,7 +9,7 @@ public sealed class PersonnelScheduledActionConfiguration : IEntityTypeConfigura
 {
     public void Configure(EntityTypeBuilder<PersonnelScheduledAction> builder)
     {
-        builder.ToTable("personnel_scheduled_actions");
+        builder.ToTable("PersonnelScheduledActions");
 
         builder.HasKey(x => x.Id);
 

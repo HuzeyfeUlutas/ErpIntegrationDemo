@@ -13,8 +13,7 @@ public sealed class KafkaEventLogsController : ControllerBase
 {
     private readonly IMediator _mediator;
     public KafkaEventLogsController(IMediator mediator) => _mediator = mediator;
-
-    // GET /api/kafka-events?PageIndex=1&PageSize=20&Search=...&Status=...&EventType=...
+    
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] KafkaEventLogFilter filter, CancellationToken ct)
     {
